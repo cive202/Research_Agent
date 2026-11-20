@@ -22,6 +22,20 @@ All roles use the same Groq model (`GROQ_MODEL`). Every handoff goes through Pyd
 `market_research/models.py` (`Research`, `Brief`, `Critique`, all held in one `WorkflowState`); model output is validated
 against these schemas, with one automatic retry on invalid JSON.
 
+**Research loop.** After the first extraction, the Researcher reads its own `data_gaps` (for example "market
+size not found"), plans targeted queries for them, searches again, filters the new documents and re-extracts. It stops
+after `MAX_GAP_ROUNDS` (2), when nothing new turns up, or at `MAX_TOTAL_SOURCES` (12) documents, to protect the
+context budget. If a gap round fails (for example a rate limit), the earlier findings are kept.
+
+**Critique.** The Critic reviews the draft in its own LLM call and returns typed issues (`section`, `category`,
+`comment`). Issues are sorted by priority (competitor limit, then unsupported claim or missing gap, then style) and the
+Analyst fixes them in that order. The single allowed revision is unchanged. The first draft is kept next to the final
+brief.
+
+**Run files.** Every run writes `runs/<time>-<query>/` with `research.md`, `draft_v0.md`, `final.md` and `state.json`
+(full shared state, including per-step seconds and LLM tokens). The UI shows the same numbers under "Research rounds
+and run cost". Use `--no-save` on the CLI to skip writing files.
+
 **Brief contents:** summary, up to two competitors (enforced in code), key observations, sources, missing information.
 
 ## Setup
@@ -74,6 +88,7 @@ After each run the evaluator scores both halves of the pipeline:
 | `brief_groundedness` | LLM judge | Are the brief's claims supported by the findings and snippets? (>= 0.7) |
 | `citation_validity` | rule | Was every URL cited in the brief actually retrieved? (must be 100%) |
 | `structure_check` | rule | Summary, <=2 competitors, >=3 observations, sources, missing info present? |
+| `style_check` | rule | No AI-slop phrases, em dashes or vague generalisations like "most companies"? (informational) |
 | `gap_honesty` | LLM judge | Does the brief admit what the evidence does not cover? (informational) |
 
 **Verdict:** `RAG WORKING` when all required checks pass, `RAG NOT WORKING` (with the failing checks listed)
@@ -108,6 +123,7 @@ app.py                       Streamlit UI (thin entry point, one render function
 market_research/
   config.py                  Env lookups, limits, evaluation thresholds
   models.py                  Pydantic models for shared data
+  artifacts.py               Saves research.md, draft_v0.md, final.md, state.json per run
   rendering.py               Markdown rendering of briefs and evaluation reports
   urls.py                    URL normalisation and repair (snap_urls)
   search.py                  Tavily retrieval
@@ -128,7 +144,7 @@ sample_output.md             Example brief with evaluation report
 - Quality depends on what web search returns; the brief lists missing information instead of guessing.
 - The Critic gets one revision cycle only, and the revised brief is not reviewed again.
 - LLM-judge metrics are themselves model outputs: treat them as a guide, not ground truth.
-- Groq's free tier has rate limits; the app retries with backoff but a very busy minute can still fail.
+- Groq's free tier has rate limits (per minute and about 200k tokens per day per model). Gap rounds add one or two extraction calls, and evaluation adds more; use `--no-eval` or disable gap rounds (`MAX_GAP_ROUNDS = 0` in `config.py`) when quota is tight.
 - No caching or deployment config (kept simple on purpose).
 
 ## Credits
