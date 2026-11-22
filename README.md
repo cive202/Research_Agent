@@ -1,107 +1,187 @@
 # Multi-Agent Market Research App
 
-A small Streamlit app that takes a company or industry (for example
-*"Analyze the food delivery market in Nepal"*) and produces a short research brief using
-four roles that run in sequence. It also includes an **evaluation system** that tells you whether the
-retrieval-augmented pipeline (live web search -> grounded brief) is actually working.
+A Streamlit app that turns a company or industry (for example *"Analyze the food delivery market in Nepal"*) into a
+short, **cited** research brief. Four roles run in sequence (Orchestrator, Researcher, Analyst, Critic), pass
+structured Pydantic data to each other, and the brief may only use numbered findings (`F1`, `F2`, ...) that came from
+web search or from clearly labelled sample data. A plain-Python grounding check flags any claim without evidence, and
+the Critic may request **at most one revision**.
 
-## How it works
-
-```
-guideline.md (optional) ─┐
-                         v
-Orchestrator -> Researcher -> Analyst (v0) -> [Critic -> Analyst edits] x N -> Evaluator
-                                  ^                 ^
-              profiles/*.md + few-shot example      guideline > research > profiles
-```
-
-The research part is exploratory (it searches again for what is missing); the writing part is a fixed
-workflow held in place by a guideline, writing profiles and a reviewer. That split follows the
-"deep research agent + writing workflow" design from the Towards AI workshop
-*Build Your Own Deep Research Agents*, adapted to market research on Groq + Tavily.
-
-| Role | File | What it does |
-|---|---|---|
-| Orchestrator | `market_research/workflow.py` | Receives the query, runs the roles in order, allows at most one revision |
-| Researcher | `market_research/agents/researcher.py`, `search.py` | Searches the web with Tavily (or uses clearly labelled sample data) and extracts findings with source URLs and data gaps |
-| Analyst | `market_research/agents/analyst.py` | Writes the brief from the findings, the guideline and the writing profiles, then applies reviews |
-| Critic | `market_research/agents/critic.py` | Reviews each version in its own context against the guideline, the findings and the profiles |
-
-All roles use the same Groq model (`GROQ_MODEL`). Every handoff goes through Pydantic models in
-`market_research/models.py` (`Research`, `Brief`, `Critique`, all held in one `WorkflowState`); model output is validated
-against these schemas, with one automatic retry on invalid JSON.
-
-**Research loop.** After the first extraction, the Researcher reads its own `data_gaps` (for example "market
-size not found"), plans targeted queries for them, searches again, filters the new documents and re-extracts. It stops
-after `MAX_GAP_ROUNDS` (2), when nothing new turns up, or at `MAX_TOTAL_SOURCES` (12) documents, to protect the
-context budget. If a gap round fails (for example a rate limit), the earlier findings are kept.
-
-**Guideline (what to write).** Instead of a one-line query you can pass a markdown guideline
-(`guidelines/TEMPLATE.md`, example: `guidelines/nepal-food-delivery.md`) with the angle, audience, key questions,
-must-include items, seed links and constraints. Key questions become the first searches, seed links are read
-before searching (Tavily Extract), and the Analyst and Critic both see the guideline. Its constraints override the
-profiles. A specific guideline improves the brief more than any other setting.
-
-**Profiles and few-shot example (how to write).** `profiles/structure.md`, `terminology.md` and `character.md`
-are plain markdown you can edit; the banned-phrase list from `config.py` is appended to the terminology profile.
-`profiles/examples/` holds example briefs (fictional facts, style only); only `MAX_FEW_SHOT` (1) is sent, to keep
-the prompt small. Add examples only if quality drops without them.
-
-**Review loop (evaluator-optimizer).** The Critic reviews each version in a separate LLM call and returns typed
-issues (`rule`, `section`, `category`, `comment`). `rule` says which source of truth is broken, and the Analyst
-fixes them in priority order: guideline, then research, then the structure/terminology/character profiles
-(then competitor limit > unsupported claim > style within a rule). The loop runs a fixed budget of
-`REVIEW_ITERATIONS` rounds (2; `--iterations N` or the sidebar slider, max 5) and stops early when the Critic
-approves. There is no score threshold: writing quality is subjective and such thresholds make the loop noisy.
-Every version is kept (`draft_v0.md` ... `draft_vN.md`), since an earlier one is sometimes better.
-
-**Run files.** Every run writes `runs/<time>-<query>/` with `research.md`, `draft_v0.md` ... `draft_vN.md`,
-`reviews.md`, `final.md`, `guideline.md` (if given) and `state.json` (full shared state, including every review and
-per-step seconds and LLM tokens). The UI shows the same numbers under "Research rounds
-and run cost". Use `--no-save` on the CLI to skip writing files.
-
-**Brief contents:** summary, up to two competitors (enforced in code), key observations, sources, missing information.
-
-## Setup
-
-Requires Python 3.10+, a [Groq API key](https://console.groq.com/keys) and (recommended) a
-[Tavily API key](https://app.tavily.com). Both have free tiers.
+## Quick start (about 5 minutes)
 
 ```bash
-git clone <your-repo-url>
-cd <repo-folder>
-
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
+git clone <your-repo-url> && cd <repo-folder>
+python -m venv .venv && source .venv/bin/activate     # Windows PowerShell: see below
 pip install -r requirements.txt
-
-cp .env.example .env            # Windows: copy .env.example .env
-# open .env and replace the placeholders with your real keys
-```
-
-## Run
-
-```bash
+cp .env.example .env                                   # then put your GROQ_API_KEY in .env
 streamlit run app.py
 ```
 
-Open http://localhost:8501, type a company or industry and click **Start research**. Progress for each
-role appears live. The page shows the brief, the evaluation scorecard, and an "Agent handoffs" expander
-with the critic's verdict and the full shared state. The brief can be downloaded as Markdown.
+Open http://localhost:8501 and click **Analyze the food delivery market in Nepal**. That is all.
 
-**No Tavily key?** The Researcher falls back to fixed, clearly labelled **sample data** (about Nepal food
-delivery) and the app shows a warning banner. You can also force this with the sidebar checkbox. A Groq key
-is always required.
+You need one key: a free [Groq API key](https://console.groq.com/keys) for the LLM. Web search needs no key
+(DuckDuckGo); a free [Tavily key](https://app.tavily.com) gives better results.
+
+<details>
+<summary><b>Windows (PowerShell) setup</b></summary>
+
+```powershell
+git clone <your-repo-url>; cd <repo-folder>
+py -m venv .venv
+.venv\Scripts\Activate.ps1          # if blocked: Set-ExecutionPolicy -Scope Process Bypass
+pip install -r requirements.txt
+Copy-Item .env.example .env          # then edit .env in Notepad and add GROQ_API_KEY
+streamlit run app.py
+```
+</details>
+
+<details>
+<summary><b>macOS / Linux setup</b></summary>
+
+```bash
+git clone <your-repo-url> && cd <repo-folder>
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env && ${EDITOR:-nano} .env
+streamlit run app.py
+```
+</details>
+
+Python 3.10 or newer is required.
+
+### Getting API keys
+
+| Key | Needed? | Where | Notes |
+|---|---|---|---|
+| `GROQ_API_KEY` | **Yes** (LLM for all four roles) | https://console.groq.com/keys | Free tier, rate limited |
+| `TAVILY_API_KEY` | No | https://app.tavily.com | Better search; without it the app uses DuckDuckGo |
+
+Never commit `.env` (it is in `.gitignore`); `.env.example` only holds placeholders.
+
+## What you see
+
+After a run the page has four tabs:
+
+- **Brief**: summary, up to two competitors, key observations (each ends with citations like `[F2]`), sources, and
+  missing information. Buttons download it as **Markdown** or **JSON**.
+- **Evidence**: the table of numbered findings `F1..Fn` with source links and snippets. The brief can only cite these.
+- **Agent trace**: per-role status and timing, the structured data handed from role to role, the Critic's verdict,
+  whether a revision happened, and the grounding flags.
+- **Quality**: evidence count, the RAG evaluation scorecard and run cost.
+
+Progress per role is shown live while the agents work. Example buttons above the input fill in a query and start it.
+
+### Sample-data mode
+
+Tick **Use sample data** in the sidebar (or set `USE_SAMPLE_DATA=1`) to skip web search. The Researcher then uses fixed,
+illustrative findings about Nepal food delivery. This is labelled everywhere: every finding starts with `SAMPLE:`, a
+warning banner is shown in the UI, the brief summary starts with `SAMPLE DATA`, and the Markdown and JSON downloads
+carry the same warning. The app also falls back to sample data automatically when no search provider works, and says
+why under "missing information". The LLM key is still required, because the Analyst and Critic still call the model.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    U[User query] --> O[Orchestrator]
+    O -->|query| R[Researcher]
+    R -->|"numbered findings F1..Fn<br/>+ data gaps"| A[Analyst]
+    A -->|"draft brief with [F#] citations"| G{{"Grounding check<br/>(plain Python)"}}
+    G -->|"draft + flags"| C[Critic]
+    C -->|approved| F[Final brief]
+    C -->|"feedback (max ONE revision)"| A2[Analyst revises]
+    A2 --> F
+    S1[(Tavily)] -.-> R
+    S2[(DuckDuckGo)] -.-> R
+    S3[(Sample data)] -.-> R
+```
+
+| Role | File | What it does |
+|---|---|---|
+| Orchestrator | `market_research/workflow.py` | LangGraph state machine; runs the roles in order, records the trace, enforces the revision limit |
+| Researcher | `market_research/agents/researcher.py`, `search.py` | Plans 3 queries, searches (Tavily, else DuckDuckGo, else sample data), dedupes by URL, extracts at most 10 findings and numbers them F1.. in code |
+| Analyst | `market_research/agents/analyst.py` | Writes the brief using only the numbered findings; every observation and competitor cites `[F#]`; sources are derived from the cited findings |
+| Critic | `market_research/agents/critic.py` | Reviews the draft in a fresh LLM call, together with the grounding flags |
+| Grounding check | `market_research/grounding.py` | No LLM. Flags uncited observations, unknown `[F#]` IDs, more than two competitors, competitors without a finding, source URLs not in the findings |
+
+All roles use the same Groq model. Every handoff is a Pydantic model (`market_research/models.py`): `Research` (findings),
+`Brief` (draft), `Critique` (feedback), all held in one `WorkflowState` together with the run trace.
+
+## Design decisions
+
+- **Evidence first.** IDs are assigned by code, not by the model, so a citation can be checked mechanically. The model never
+  sees or writes the ID field.
+- **Limits live in code, not only in prompts.** The Brief model truncates competitors to two (and records how many were
+  cut); the workflow graph refuses a second revision whatever the Critic says (`MAX_REVIEW_ITERATIONS = 1`).
+- **The Critic cannot wave through ungrounded claims.** If the grounding check has flags and the Critic approves anyway,
+  the approval is overruled and the flags become issues for the revision.
+- **Honest gaps.** If evidence is thin or contains no figures, code adds "Evidence is thin..." and "No market size,
+  revenue or market share figures were found" to the brief. Numbers are never invented.
+- **Fail soft.** LLM calls have a timeout and retry once on invalid JSON. Errors are turned into short messages (missing
+  key, rate limit, no network); the UI never shows a stack trace. The trace and any partial result are kept.
+- **Search fallback chain.** Tavily, then DuckDuckGo, then labelled sample data, so the app always produces something
+  that is honest about its source.
+
+## Tests and lint
+
+```bash
+pytest -q          # no API keys needed: LLM and search are mocked
+ruff check .
+```
+
+The tests cover the grounding checker, the competitor cap, the one-revision limit (a Critic that rejects every time still
+gets one revision), sample-data labelling, handoff order, the search provider order, friendly error messages, and a
+headless run of the real Streamlit app. GitHub Actions runs ruff and pytest on every push (`.github/workflows/ci.yml`).
+
+## Sample outputs
+
+`sample_output.md` and `samples/` hold real outputs produced by the app itself (see `samples/README.md`):
+
+- `samples/real_run_nepal_food_delivery.md` / `.json`: live Tavily search, one Critic revision, no grounding flags.
+- `samples/sample_data_run_nepal_food_delivery.md` / `.json`: sample-data mode, labelled as such.
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| Red box "GROQ_API_KEY is not set" | `.env` missing or still has the placeholder | `cp .env.example .env`, paste your key, restart Streamlit |
+| "The LLM rejected the API key" | Wrong or expired key | Create a new key at console.groq.com and update `.env` |
+| "The LLM rate limit was hit" | Groq free tier limit | Wait a minute, or set a smaller `GROQ_MODEL`, or untick **Run RAG evaluation** to save calls |
+| "Could not reach the LLM service" | No internet, VPN or firewall | Check your connection, retry |
+| Yellow banner "Sample data mode" | Checkbox ticked, `USE_SAMPLE_DATA=1`, or no search provider worked | Untick the box; for live results check your internet and keys |
+| Few or irrelevant results, "Evidence is thin" | Search returned little (DuckDuckGo is weaker than Tavily) | Add a `TAVILY_API_KEY`, or make the query more specific (company, country) |
+| `ModuleNotFoundError` | Dependencies not installed in the active environment | Activate the venv, then `pip install -r requirements.txt` |
+| PowerShell blocks `Activate.ps1` | Execution policy | `Set-ExecutionPolicy -Scope Process Bypass`, then activate again |
+
+## Known limitations
+
+- Search quality decides brief quality. With little evidence the brief says so instead of guessing.
+- The grounding check proves that a citation points at a real finding, not that the finding supports the sentence. The
+  Critic and the evaluation scores cover that, and they are themselves model judgements.
+- One revision only, by design. The revised brief is not reviewed again; earlier versions are kept in the trace.
+- Snippets, not full pages, are read (no scraping), so details that are not in the snippet are missed.
+- Groq's free tier is rate limited, and DuckDuckGo may throttle automated queries.
+- The brief reflects what the web search returned at that moment; rerunning can give a different result.
+
+## Advanced: guidelines, profiles, review budget
+
+Instead of a one-line query you can pass a markdown guideline (`guidelines/TEMPLATE.md`, example
+`guidelines/nepal-food-delivery.md`) with the angle, audience, key questions, must-include items, seed links and
+constraints. Key questions become the first searches and the Analyst and Critic both see the guideline. Writing style
+comes from `profiles/*.md` and one few-shot example in `profiles/examples/`. After extraction the Researcher also reads
+its own data gaps, plans follow-up searches for them (up to `MAX_GAP_ROUNDS`) and re-extracts.
+
+Every run writes `runs/<time>-<query>/` with `research.md`, `draft_v0.md` (and `draft_v1.md` if revised), `reviews.md`,
+`final.md` and `state.json` (full shared state, per-step seconds and LLM tokens). `--no-save` on the CLI skips this.
 
 ### Command line
 
 ```bash
-python -m market_research run "Analyze the food delivery market in Nepal" --out sample_output.md
-python -m market_research run --guideline guidelines/nepal-food-delivery.md --iterations 3
-# options: --sample  --no-eval  --force-revision (tests the revision path)  --iterations N
+python -m market_research run "Analyze the food delivery market in Nepal" --out brief.md
+python -m market_research run --guideline guidelines/nepal-food-delivery.md
+# options: --sample  --no-eval  --force-revision (tests the revision path)
 ```
 
-### Claude Code: MCP server and skill
+## Claude Code: MCP server and skill
 
 The same tools are served over MCP (`market_research/mcp_server.py`, FastMCP), so an agent harness such as
 Claude Code can drive the research itself. Here the agent is the brain: it reads the gaps each search returns and
@@ -189,62 +269,28 @@ means little. Results are saved to `eval_data/calibration-<split>.json`.
 project (`OPIK_PROJECT_NAME`), with inputs, outputs and latency. Without it nothing changes; the per-step time and
 token counts are in `state.json` either way.
 
-## Tests
-
-```bash
-pytest
-```
-
-The tests need no API keys: they cover the rule-based metrics and run the whole workflow with the LLM and
-search mocked (including the one-revision cap and the tamper check).
-
 ## Project structure
 
 ```
-app.py                       Streamlit UI (thin entry point, one render function per section)
+app.py                       Streamlit UI (tabs, example buttons, live role progress, downloads)
 market_research/
   config.py                  Env lookups, limits, evaluation thresholds
-  models.py                  Pydantic models for shared data
-  artifacts.py               Saves research.md, draft_v0.md, final.md, state.json per run
-  rendering.py               Markdown rendering of briefs and evaluation reports
-  urls.py                    URL normalisation and repair (snap_urls)
-  search.py                  Tavily retrieval
-  llm.py                     Groq wrapper with JSON validation, retry and rate-limit backoff
-  workflow.py                Orchestrator (LangGraph, review loop)
-  guideline.py               Guideline markdown parser
-  profiles.py                Loads writing profiles and few-shot examples
-  tools.py                   File-based research/writing tools (used by the MCP server)
-  mcp_server.py              FastMCP server: tools, prompt, resources
-  tracing.py                 Optional Opik tracing
+  models.py                  Pydantic models for shared data (Finding, Research, Brief, Critique, WorkflowState)
+  grounding.py               No-LLM grounding check and source derivation
+  workflow.py                Orchestrator (LangGraph), agent trace, revision limit
+  search.py                  Tavily, then DuckDuckGo
+  llm.py                     Groq wrapper: timeout, JSON validation, retries, friendly errors
+  rendering.py               Markdown / JSON export
   agents/                    researcher.py, analyst.py, critic.py, sample_data.py
-  evaluation/                rules.py (deterministic), judges.py (LLM judges),
-                             verdict.py (evaluate), tamper.py, batch.py,
-                             calibration.py (labelled dataset, expert judge, F1)
-guidelines/                  TEMPLATE.md and an example guideline
-profiles/                    structure.md, terminology.md, character.md, examples/
-.mcp.json                    Registers the MCP server with Claude Code
-.claude/skills/market-research/SKILL.md   Claude Code skill for the end-to-end workflow
-eval_data/                   dataset.jsonl (your labels), calibration results
-  cli.py / __main__.py       `python -m market_research {run,eval}`
-tests/                       pytest tests (no API keys required)
-test_queries.json            Queries for the batch evaluation
-.env.example                 Placeholder environment variables
-sample_output.md             Example brief with evaluation report
+  evaluation/                rules.py, judges.py, verdict.py, tamper.py, batch.py, calibration.py
+  guideline.py profiles.py urls.py artifacts.py tracing.py tools.py mcp_server.py cli.py
+guidelines/  profiles/       Editable markdown inputs
+samples/  sample_output.md   Real and sample-data outputs
+tests/                       pytest (mocked, no API keys)
+.github/workflows/ci.yml     ruff + pytest
 ```
-
-## Limitations
-
-- Quality depends on what web search returns; the brief lists missing information instead of guessing.
-- The review loop has a fixed budget; the last edit is not reviewed again (look at `reviews.md` and earlier versions).
-- The expert judge is only as good as your labels; with few labels its F1 is not meaningful.
-- YouTube transcripts and GitHub ingestion from the workshop are not included (they need Gemini / gitingest);
-  seed links cover web pages.
-- LLM-judge metrics are themselves model outputs: treat them as a guide, not ground truth.
-- Groq's free tier has rate limits (per minute and about 200k tokens per day per model). Gap rounds add one or two extraction calls, and evaluation adds more; use `--no-eval` or disable gap rounds (`MAX_GAP_ROUNDS = 0` in `config.py`) when quota is tight.
-- No caching or deployment config (kept simple on purpose).
 
 ## Credits
 
 Structure and ideas were informed by open-source market-research agent projects (MIT licensed), including
 Market-Intelligence-Agent and Market-Research-Agent. No code was copied from them.
-# Research_Agent
