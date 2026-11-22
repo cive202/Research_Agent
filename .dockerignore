@@ -9,5 +9,4 @@ __pycache__
 runs
 research
 eval_data/calibration-*.json
-infra
 .github

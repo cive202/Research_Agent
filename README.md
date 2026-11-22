@@ -78,14 +78,26 @@ warning banner is shown in the UI, the brief summary starts with `SAMPLE DATA`, 
 carry the same warning. The app also falls back to sample data automatically when no search provider works, and says
 why under "missing information". The LLM key is still required, because the Analyst and Critic still call the model.
 
-### Optional: Docker and AWS deployment
+### Optional: Docker
 
 ```bash
 docker compose up --build            # http://localhost:8501, reads keys from your local .env
 ```
 
-- **Deploy to AWS (ECS Fargate + ALB)** with the Terraform in `infra/` and the manual `deploy.yml` workflow. This is
-  written but **not yet applied or verified**; read `infra/README.md` (cost, setup, teardown) before using it.
+### Optional: put it online (not required)
+
+The assignment only needs a local run. If you want a public link, the options below all work with this repo as it is
+(set `GROQ_API_KEY` and optionally `TAVILY_API_KEY` in the host's secrets page, never in the repo). I have not
+deployed to any of them.
+
+| Host | Cost | Fit |
+|---|---|---|
+| [Streamlit Community Cloud](https://streamlit.io/cloud) | Free | Easiest: connect the GitHub repo, main file `app.py`, add secrets in Settings. Public apps need a public repo. |
+| [Hugging Face Spaces](https://huggingface.co/spaces) | Free tier | Create a Docker Space and push this repo; it uses the `Dockerfile` (set the port to 8501 in the Space README header). |
+| [Render](https://render.com) | Free tier (sleeps when idle) | New Web Service from the repo, Docker runtime; env vars in the dashboard. |
+| [Fly.io](https://fly.io) or [Railway](https://railway.com) | Small paid or trial credit | Deploy the `Dockerfile`; keeps running without idle sleep. |
+
+Anyone with the URL can spend your LLM quota, so share it carefully.
 
 ## Architecture
 
@@ -297,9 +309,8 @@ market_research/
 guidelines/  profiles/       Editable markdown inputs
 samples/  sample_output.md   Real and sample-data outputs
 tests/                       pytest (mocked, no API keys)
-.github/workflows/         ci.yml (ruff, pytest, Docker build + smoke test), deploy.yml (manual AWS deploy)
+.github/workflows/ci.yml     ruff, pytest, Docker build + smoke test
 Dockerfile docker-compose.yml Makefile   Container and shortcuts
-infra/                       Terraform for ECS Fargate + ALB (unapplied, see infra/README.md)
 ```
 
 ## Credits
