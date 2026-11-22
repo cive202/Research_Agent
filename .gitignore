@@ -1,11 +1,14 @@
 .env
+.claude/settings.local.json
 venv/
 .venv/
 __pycache__/
 *.pyc
 .streamlit/secrets.toml
-*.zip
 *.pdf
 eval_results.json
 .pytest_cache/
 runs/
+
+research/
+eval_data/calibration-*.json

@@ -1,0 +1,404 @@
+{
+  "data_mode": "sample",
+  "warning": "SAMPLE DATA MODE: the findings are fixed, illustrative sample data, not live research. Do not treat this brief as real market evidence.",
+  "run": {
+    "query": "Analyze the food delivery market in Nepal",
+    "guideline": null,
+    "research": {
+      "findings": [
+        {
+          "claim": "SAMPLE: Foodmandu is one of the earliest and best-known food delivery platforms in Nepal, operating mainly in Kathmandu Valley.",
+          "source_title": "SAMPLE DATA (illustrative, not a real source)",
+          "source_url": "",
+          "id": "F1",
+          "snippet": ""
+        },
+        {
+          "claim": "SAMPLE: Pathao, a ride-hailing and logistics app, also offers food delivery in Nepal.",
+          "source_title": "SAMPLE DATA (illustrative, not a real source)",
+          "source_url": "",
+          "id": "F2",
+          "snippet": ""
+        },
+        {
+          "claim": "SAMPLE: Delivery demand is concentrated in Kathmandu Valley and other large urban areas.",
+          "source_title": "SAMPLE DATA (illustrative, not a real source)",
+          "source_url": "",
+          "id": "F3",
+          "snippet": ""
+        },
+        {
+          "claim": "SAMPLE: Platforms typically earn through restaurant commissions and delivery fees.",
+          "source_title": "SAMPLE DATA (illustrative, not a real source)",
+          "source_url": "",
+          "id": "F4",
+          "snippet": ""
+        },
+        {
+          "claim": "SAMPLE: Common challenges include traffic congestion, delivery-partner costs and thin margins.",
+          "source_title": "SAMPLE DATA (illustrative, not a real source)",
+          "source_url": "",
+          "id": "F5",
+          "snippet": ""
+        }
+      ],
+      "data_gaps": [
+        "Sample data is illustrative and unverified; no market size or growth figures are included.",
+        "No market share data for any company."
+      ],
+      "mode": "sample",
+      "provider": "sample",
+      "sources": [],
+      "queries": [],
+      "gap_rounds": []
+    },
+    "draft": {
+      "summary": "SAMPLE DATA (not live research): The food delivery market in Nepal is described only by sample findings, which provide limited detail and no recent figures. The evidence notes early presence of Foodmandu and entry of Pathao, with demand focused on Kathmandu Valley, but lacks market size or growth data.",
+      "competitors": [
+        {
+          "name": "Foodmandu",
+          "note": "Foodmandu is an early, well‑known platform operating mainly in Kathmandu Valley [F1]."
+        },
+        {
+          "name": "Pathao",
+          "note": "Pathao, known for ride‑hailing, also offers food delivery in Nepal [F2]."
+        }
+      ],
+      "key_observations": [
+        "Foodmandu is one of the earliest and best‑known food delivery platforms in Nepal, operating mainly in Kathmandu Valley [F1].",
+        "Pathao, a ride‑hailing and logistics app, also offers food delivery in Nepal [F2].",
+        "Delivery demand is concentrated in Kathmandu Valley and other large urban areas [F3].",
+        "Platforms typically earn through restaurant commissions and delivery fees [F4].",
+        "Common challenges include traffic congestion, delivery‑partner costs and thin margins [F5]."
+      ],
+      "sources": [
+        {
+          "title": "SAMPLE DATA: fixed illustrative text, not a real source",
+          "url": "",
+          "snippet": ""
+        }
+      ],
+      "missing_information": [
+        "No market size figure for Nepal's food delivery market.",
+        "No market share or revenue data for any platform.",
+        "No growth rate or order volume data.",
+        "No recent year‑specific data; all findings are sample without dates."
+      ],
+      "competitors_dropped": 0
+    },
+    "critique": {
+      "approved": false,
+      "issues": [
+        {
+          "rule": "structure",
+          "section": "summary",
+          "category": "other",
+          "comment": "Remove the non‑standard \"competitors_dropped\" field; only the defined sections should be present."
+        },
+        {
+          "rule": "terminology",
+          "section": "summary",
+          "category": "style",
+          "comment": "Rewrite the summary in active voice (e.g., \"Sample findings describe the food delivery market in Nepal…\") instead of passive \"is described\"."
+        }
+      ],
+      "revision_instructions": "Change the summary to use active voice and eliminate the extra \"competitors_dropped\" entry so the brief matches the required structure."
+    },
+    "final": {
+      "summary": "SAMPLE DATA (not live research): Sample findings describe Nepal’s food‑delivery market but provide only limited detail. They note that Foodmandu is an early, well‑known platform focused on Kathmandu Valley and that Pathao also offers delivery services. Demand is concentrated in Kathmandu Valley, and platforms earn via commissions and fees, yet no market‑size or growth figures are available.",
+      "competitors": [
+        {
+          "name": "Foodmandu",
+          "note": "Foodmandu is an early, well‑known platform operating mainly in Kathmandu Valley [F1]."
+        },
+        {
+          "name": "Pathao",
+          "note": "Pathao, known for ride‑hailing, also offers food delivery in Nepal [F2]."
+        }
+      ],
+      "key_observations": [
+        "Foodmandu is one of the earliest and best‑known food delivery platforms in Nepal, operating mainly in Kathmandu Valley [F1].",
+        "Pathao, a ride‑hailing and logistics app, also offers food delivery in Nepal [F2].",
+        "Delivery demand is concentrated in Kathmandu Valley and other large urban areas [F3].",
+        "Platforms typically earn through restaurant commissions and delivery fees [F4].",
+        "Common challenges include traffic congestion, delivery‑partner costs and thin margins [F5]."
+      ],
+      "sources": [
+        {
+          "title": "SAMPLE DATA: fixed illustrative text, not a real source",
+          "url": "",
+          "snippet": ""
+        }
+      ],
+      "missing_information": [
+        "No market size figure for Nepal's food delivery market.",
+        "No market share or revenue data for any platform.",
+        "No growth rate or order volume data.",
+        "No recent year‑specific data; all findings are sample without dates."
+      ],
+      "competitors_dropped": 0
+    },
+    "revised": true,
+    "drafts": [
+      {
+        "summary": "SAMPLE DATA (not live research): The food delivery market in Nepal is described only by sample findings, which provide limited detail and no recent figures. The evidence notes early presence of Foodmandu and entry of Pathao, with demand focused on Kathmandu Valley, but lacks market size or growth data.",
+        "competitors": [
+          {
+            "name": "Foodmandu",
+            "note": "Foodmandu is an early, well‑known platform operating mainly in Kathmandu Valley [F1]."
+          },
+          {
+            "name": "Pathao",
+            "note": "Pathao, known for ride‑hailing, also offers food delivery in Nepal [F2]."
+          }
+        ],
+        "key_observations": [
+          "Foodmandu is one of the earliest and best‑known food delivery platforms in Nepal, operating mainly in Kathmandu Valley [F1].",
+          "Pathao, a ride‑hailing and logistics app, also offers food delivery in Nepal [F2].",
+          "Delivery demand is concentrated in Kathmandu Valley and other large urban areas [F3].",
+          "Platforms typically earn through restaurant commissions and delivery fees [F4].",
+          "Common challenges include traffic congestion, delivery‑partner costs and thin margins [F5]."
+        ],
+        "sources": [
+          {
+            "title": "SAMPLE DATA: fixed illustrative text, not a real source",
+            "url": "",
+            "snippet": ""
+          }
+        ],
+        "missing_information": [
+          "No market size figure for Nepal's food delivery market.",
+          "No market share or revenue data for any platform.",
+          "No growth rate or order volume data.",
+          "No recent year‑specific data; all findings are sample without dates."
+        ],
+        "competitors_dropped": 0
+      },
+      {
+        "summary": "SAMPLE DATA (not live research): Sample findings describe Nepal’s food‑delivery market but provide only limited detail. They note that Foodmandu is an early, well‑known platform focused on Kathmandu Valley and that Pathao also offers delivery services. Demand is concentrated in Kathmandu Valley, and platforms earn via commissions and fees, yet no market‑size or growth figures are available.",
+        "competitors": [
+          {
+            "name": "Foodmandu",
+            "note": "Foodmandu is an early, well‑known platform operating mainly in Kathmandu Valley [F1]."
+          },
+          {
+            "name": "Pathao",
+            "note": "Pathao, known for ride‑hailing, also offers food delivery in Nepal [F2]."
+          }
+        ],
+        "key_observations": [
+          "Foodmandu is one of the earliest and best‑known food delivery platforms in Nepal, operating mainly in Kathmandu Valley [F1].",
+          "Pathao, a ride‑hailing and logistics app, also offers food delivery in Nepal [F2].",
+          "Delivery demand is concentrated in Kathmandu Valley and other large urban areas [F3].",
+          "Platforms typically earn through restaurant commissions and delivery fees [F4].",
+          "Common challenges include traffic congestion, delivery‑partner costs and thin margins [F5]."
+        ],
+        "sources": [
+          {
+            "title": "SAMPLE DATA: fixed illustrative text, not a real source",
+            "url": "",
+            "snippet": ""
+          }
+        ],
+        "missing_information": [
+          "No market size figure for Nepal's food delivery market.",
+          "No market share or revenue data for any platform.",
+          "No growth rate or order volume data.",
+          "No recent year‑specific data; all findings are sample without dates."
+        ],
+        "competitors_dropped": 0
+      }
+    ],
+    "critiques": [
+      {
+        "approved": false,
+        "issues": [
+          {
+            "rule": "structure",
+            "section": "summary",
+            "category": "other",
+            "comment": "Remove the non‑standard \"competitors_dropped\" field; only the defined sections should be present."
+          },
+          {
+            "rule": "terminology",
+            "section": "summary",
+            "category": "style",
+            "comment": "Rewrite the summary in active voice (e.g., \"Sample findings describe the food delivery market in Nepal…\") instead of passive \"is described\"."
+          }
+        ],
+        "revision_instructions": "Change the summary to use active voice and eliminate the extra \"competitors_dropped\" entry so the brief matches the required structure."
+      }
+    ],
+    "max_iterations": 1,
+    "evaluation": {
+      "metrics": [
+        {
+          "name": "retrieval_check",
+          "score": 0.0,
+          "passed": false,
+          "reason": "0 sources, 0 domains; retrieval not live (sample data); only 0 sources (need 3); only 0 unique domains (need 2)",
+          "details": []
+        },
+        {
+          "name": "brief_groundedness",
+          "score": 0.875,
+          "passed": true,
+          "reason": "7/8 claims supported (need 70%)",
+          "details": [
+            "Unsupported: SAMPLE DATA (not live research): Sample findings describe Nepal’s food‑delivery market but provide only limited detail. They note that Foodmandu is an early, well‑known platform focused on Kathmandu Valley and that Pathao also offers delivery services. Demand is concentrated in Kathmandu Valley, and platforms earn via commissions and fees, yet no market‑size or growth figures are available."
+          ]
+        },
+        {
+          "name": "citation_validity",
+          "score": 1.0,
+          "passed": true,
+          "reason": "no URLs cited (sample data)",
+          "details": []
+        },
+        {
+          "name": "structure_check",
+          "score": 1.0,
+          "passed": true,
+          "reason": "all sections present",
+          "details": []
+        },
+        {
+          "name": "style_check",
+          "score": 1.0,
+          "passed": true,
+          "reason": "no slop phrases or vague generalisations",
+          "details": []
+        },
+        {
+          "name": "gap_honesty",
+          "score": 1.0,
+          "passed": true,
+          "reason": "The brief explicitly lists the missing data (market size, share, growth, recent year data) and does not claim these facts, matching the evidence gaps.",
+          "details": []
+        }
+      ],
+      "verdict": "RAG NOT ACTIVE",
+      "failed_checks": [
+        "retrieval is not live (sample data) - retrieval was not exercised"
+      ]
+    },
+    "metrics": [
+      {
+        "step": "researcher",
+        "seconds": 0.0,
+        "llm_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0
+      },
+      {
+        "step": "analyst",
+        "seconds": 2.6,
+        "llm_calls": 1,
+        "input_tokens": 2211,
+        "output_tokens": 884
+      },
+      {
+        "step": "critic",
+        "seconds": 2.97,
+        "llm_calls": 1,
+        "input_tokens": 2323,
+        "output_tokens": 1106
+      },
+      {
+        "step": "revise",
+        "seconds": 23.22,
+        "llm_calls": 1,
+        "input_tokens": 2744,
+        "output_tokens": 668
+      },
+      {
+        "step": "stop",
+        "seconds": 0.0,
+        "llm_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0
+      },
+      {
+        "step": "evaluate",
+        "seconds": 2.28,
+        "llm_calls": 2,
+        "input_tokens": 1098,
+        "output_tokens": 1099
+      },
+      {
+        "step": "finish",
+        "seconds": 0.0,
+        "llm_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0
+      }
+    ],
+    "run_dir": "/tmp/claude-1000/-home-cive-Projects-Eb-pearls/0fad4625-1b13-442b-ab3d-52ba6712b0ee/scratchpad/runs/20261122-195918-analyze-the-food-delivery-market-in-nepa",
+    "log": [
+      "Orchestrator: received query 'Analyze the food delivery market in Nepal', starting workflow.",
+      "Researcher: gathering information (sample data)...",
+      "Researcher: 5 findings from 0 sources, 2 gaps left.",
+      "Analyst: writing draft brief (v0)...",
+      "Critic: reviewing draft v0 in a fresh context...",
+      "Critic: 2 issues (structure/other, terminology/style)",
+      "Analyst: revising, applying 2 issues -> v1 (round 1 of max 1)...",
+      "Orchestrator: review budget used (1 rounds); v1 is final.",
+      "Evaluator: scoring retrieval and grounding...",
+      "Evaluator: RAG NOT ACTIVE.",
+      "Orchestrator: grounding check found 0 flag(s).",
+      "Orchestrator: workflow complete."
+    ],
+    "trace": [
+      {
+        "role": "Orchestrator",
+        "status": "ok",
+        "seconds": 0.0,
+        "detail": "query received, workflow started"
+      },
+      {
+        "role": "Researcher",
+        "status": "ok",
+        "seconds": 0.0,
+        "detail": "5 findings, 0 sources, provider=sample"
+      },
+      {
+        "role": "Analyst",
+        "status": "ok",
+        "seconds": 2.6,
+        "detail": "draft v0, 5 observations"
+      },
+      {
+        "role": "Critic",
+        "status": "ok",
+        "seconds": 2.97,
+        "detail": "changes requested (2 issues)"
+      },
+      {
+        "role": "Analyst",
+        "status": "ok",
+        "seconds": 23.22,
+        "detail": "revision v1"
+      },
+      {
+        "role": "Orchestrator",
+        "status": "ok",
+        "seconds": 0.0,
+        "detail": "revision budget used"
+      },
+      {
+        "role": "Evaluator",
+        "status": "ok",
+        "seconds": 2.28,
+        "detail": ""
+      },
+      {
+        "role": "Orchestrator",
+        "status": "ok",
+        "seconds": 0.0,
+        "detail": ""
+      }
+    ],
+    "grounding": [],
+    "error": null
+  }
+}
