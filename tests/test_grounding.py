@@ -260,3 +260,53 @@ def test_findings_are_numbered_capped_and_deduplicated_by_url():
     out = number_findings(many, srcs)
     assert [f.id for f in out] == [f"F{i}" for i in range(1, config.MAX_FINDINGS + 1)]
     assert out[0].snippet == "snippet a"
+
+
+def test_intake_declines_with_a_clarifying_question_and_fails_open(monkeypatch):
+    from market_research import intake
+    from market_research.llm import LLMError
+
+    monkeypatch.setenv("INTAKE_CHECK", "1")
+    setup(monkeypatch)
+    answer = {"v": intake.Intake(is_valid=False, clarifying_question="Which market do you mean?")}
+    monkeypatch.setattr(intake, "ask_json", lambda *a, **k: answer["v"])
+    with pytest.raises(ValueError, match="Which market"):
+        workflow.orchestrator("market")
+
+    answer["v"] = intake.Intake(is_valid=True)
+    assert workflow.orchestrator("food delivery in Nepal").final
+
+    def down(*a, **k):
+        raise LLMError("down")
+
+    monkeypatch.setattr(intake, "ask_json", down)
+    assert workflow.orchestrator("food delivery in Nepal").final  # fails open
+
+
+def test_bedrock_provider_parses_claude_json_and_counts_usage(monkeypatch):
+    from market_research import llm
+    from market_research.models import Critique
+
+    monkeypatch.setenv("LLM_PROVIDER", "bedrock")
+    seen = {}
+
+    class Client:
+        def converse(self, **kw):
+            seen.update(kw)
+            text = '```json\n{"approved": true, "issues": []}\n```'
+            return {"output": {"message": {"content": [{"text": text}]}},
+                    "usage": {"inputTokens": 11, "outputTokens": 5}}
+
+    monkeypatch.setattr(llm, "_bedrock_client", lambda: Client())
+    before = llm.usage_snapshot()
+    out = llm.ask_json(Critique, "system", "user")
+    after = llm.usage_snapshot()
+    assert out.approved and seen["modelId"] == config.bedrock_model_id()
+    assert after["input_tokens"] - before["input_tokens"] == 11 and after["calls"] - before["calls"] == 1
+
+
+@pytest.mark.parametrize("name,word", [("NoCredentialsError", "AWS credentials"), ("AccessDeniedException", "Model access"),
+                                       ("ThrottlingException", "rate limit")])
+def test_bedrock_errors_are_friendly(name, word):
+    exc = type(name, (Exception,), {})("boom")
+    assert word in explain_error(exc)

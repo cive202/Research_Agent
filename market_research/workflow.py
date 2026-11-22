@@ -18,6 +18,7 @@ from . import config
 from .agents import analyst, critic, researcher
 from .grounding import check_grounding
 from .guideline import Guideline
+from .intake import check_query
 from .llm import LLMError, explain_error, usage_snapshot
 from .models import Research, StepMetric, TraceStep, WorkflowState
 from .search import SearchUnavailable
@@ -211,11 +212,14 @@ def orchestrator(
         raise ValueError(f"Query is too long (max {config.MAX_QUERY_CHARS} characters).")
     iterations = max(1, min(int(iterations), config.MAX_REVIEW_ITERATIONS))
 
+    use_sample = use_sample or config.use_sample_env()
+    if config.intake_enabled() and not (use_sample or guideline or research):
+        check_query(query)  # ValueError with a clarifying question for gibberish or too-vague input
     state = WorkflowState(query=query, guideline=guideline, max_iterations=iterations, research=research)
     state.trace.append(TraceStep(role="Orchestrator", detail="query received, workflow started"))
     try:
         result = build_graph(on_step).invoke({
-            "state": state, "use_sample": use_sample or config.use_sample_env(), "evaluate_rag": evaluate_rag,
+            "state": state, "use_sample": use_sample, "evaluate_rag": evaluate_rag,
             "ragas": ragas and evaluate_rag, "force_revision": force_revision,
         })
         state = result["state"]

@@ -86,6 +86,26 @@ def use_sample_env() -> bool:
     return os.getenv("USE_SAMPLE_DATA", "").strip().lower() in ("1", "true", "yes", "on")
 
 
+def llm_provider() -> str:
+    """Which LLM backs all roles: 'groq' (default) or 'bedrock' (Claude on AWS Bedrock)."""
+    value = os.getenv("LLM_PROVIDER", "groq").strip().lower()
+    return value if value in ("groq", "bedrock") else "groq"
+
+
+def bedrock_model_id() -> str:
+    """Bedrock model or inference-profile ID. Must be enabled in your AWS account (Bedrock console)."""
+    return os.getenv("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-20250514-v1:0")
+
+
+def aws_region() -> str:
+    return os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION") or "us-east-1"
+
+
+def intake_enabled() -> bool:
+    """INTAKE_CHECK=0 turns off the Orchestrator's check that the query is a company or industry."""
+    return os.getenv("INTAKE_CHECK", "1").strip().lower() not in ("0", "false", "no", "off")
+
+
 def model_name() -> str:
     return os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 

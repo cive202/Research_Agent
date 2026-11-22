@@ -1,4 +1,4 @@
-"""Thin wrapper around the Groq API: JSON-mode calls validated against Pydantic schemas."""
+"""Thin wrapper around the LLM (Groq, or Claude on AWS Bedrock): JSON calls validated against Pydantic schemas."""
 from __future__ import annotations
 
 import json
@@ -39,8 +39,13 @@ def explain_error(e: Exception) -> str:
     name = type(e).__name__.lower()
     code = getattr(e, "status_code", None)
     head = str(e)[:80].lower()
-    if code == 429 or "ratelimit" in name or "rate limit" in head or "429" in head:
+    if code == 429 or "ratelimit" in name or "throttl" in name or "throttl" in head or "rate limit" in head or "429" in head:
         return "The LLM rate limit was hit. Wait a minute and try again, or pick a smaller model in .env."
+    if "nocredentials" in name or "partialcredentials" in name:
+        return "AWS credentials were not found. Run `aws configure` or set AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY."
+    if "accessdenied" in name or "accessdenied" in head or "unrecognizedclient" in head or "not authorized" in head:
+        return ("AWS Bedrock denied access. Enable the Claude model in the Bedrock console (Model access) "
+                "and check BEDROCK_MODEL_ID and AWS_REGION.")
     if code in (401, 403) or "authentication" in name or "permissiondenied" in name or "invalid api key" in head:
         return "The LLM rejected the API key. Check GROQ_API_KEY in your .env file."
     if (isinstance(e, (ConnectionError, TimeoutError)) or "connection" in name or "timeout" in name
@@ -65,6 +70,40 @@ def chat_model(model: Optional[str] = None, temperature: float = 0.3, max_tokens
                     max_tokens=max_tokens, timeout=config.LLM_TIMEOUT, max_retries=config.LLM_ATTEMPTS)
 
 
+def _bedrock_client():
+    """boto3 Bedrock runtime client (imported lazily so Groq users do not need boto3)."""
+    try:
+        import boto3
+    except ImportError as e:
+        raise LLMError("boto3 is not installed. Run `pip install boto3` to use LLM_PROVIDER=bedrock.") from e
+    return boto3.client("bedrock-runtime", region_name=config.aws_region())
+
+
+def _strip_fences(text: str) -> str:
+    text = text.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1] if "\n" in text else text
+        text = text.rsplit("```", 1)[0]
+    start, end = text.find("{"), text.rfind("}")
+    return text[start:end + 1] if start != -1 and end > start else text
+
+
+def _bedrock_json(schema: type[T], system_full: str, user: str, temperature: float) -> T:
+    """One Claude call through the Bedrock Converse API, parsed and validated against `schema`."""
+    res = _bedrock_client().converse(
+        modelId=config.bedrock_model_id(),
+        system=[{"text": system_full}],
+        messages=[{"role": "user", "content": [{"text": user}]}],
+        inferenceConfig={"maxTokens": config.LLM_MAX_TOKENS, "temperature": temperature},
+    )
+    usage = res.get("usage", {})
+    _usage["calls"] += 1
+    _usage["input_tokens"] += int(usage.get("inputTokens", 0))
+    _usage["output_tokens"] += int(usage.get("outputTokens", 0))
+    text = "".join(part.get("text", "") for part in res["output"]["message"]["content"])
+    return schema.model_validate_json(_strip_fences(text))
+
+
 @track("llm_call", "llm")
 def ask_json(schema: type[T], system: str, user: str, model: Optional[str] = None,
              temperature: float = 0.3) -> T:
@@ -78,13 +117,18 @@ def ask_json(schema: type[T], system: str, user: str, model: Optional[str] = Non
         "No prose, no markdown fences.\n"
         + json.dumps(schema.model_json_schema())
     )
-    prompt = ChatPromptTemplate.from_messages([("system", "{system}"), ("human", "{user}")])
-    chain = prompt | chat_model(model, temperature).with_structured_output(schema, method="json_mode")
+    bedrock = config.llm_provider() == "bedrock"
+    chain = None
+    if not bedrock:
+        prompt = ChatPromptTemplate.from_messages([("system", "{system}"), ("human", "{user}")])
+        chain = prompt | chat_model(model, temperature).with_structured_output(schema, method="json_mode")
     text = user
     last_err: Exception | None = None
     for attempt in range(2):
         handler = UsageMetadataCallbackHandler()
         try:
+            if bedrock:
+                return _bedrock_json(schema, system_full, text, temperature)
             try:
                 result = chain.invoke({"system": system_full, "user": text}, config={"callbacks": [handler]})
             finally:
