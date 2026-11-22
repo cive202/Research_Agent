@@ -5,7 +5,6 @@ venv/
 __pycache__/
 *.pyc
 .streamlit/secrets.toml
-*.zip
 *.pdf
 eval_results.json
 .pytest_cache/
