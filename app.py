@@ -1,5 +1,4 @@
 """Streamlit UI for the multi-agent market research app (entry point: `streamlit run app.py`)."""
-import os
 from pathlib import Path
 
 import streamlit as st
@@ -37,14 +36,10 @@ def render_sidebar() -> tuple[bool, bool, bool]:
             disabled=not run_eval,
             help="Adds RAGAS faithfulness and context precision (informational, many extra LLM calls).",
         )
-        llm = st.selectbox("LLM provider", ["groq", "bedrock"], index=["groq", "bedrock"].index(config.llm_provider()),
-                           help="groq: GROQ_API_KEY in .env. bedrock: Claude on AWS Bedrock (AWS credentials, "
-                                "model access enabled, BEDROCK_MODEL_ID).")
-        os.environ["LLM_PROVIDER"] = llm
         provider = "Tavily" if config.tavily_api_key() else "DuckDuckGo (no key needed)"
         st.caption(f"Search provider: {'sample data' if use_sample else provider}. "
                    f"The Critic may request at most {config.MAX_REVIEW_ITERATIONS} revision.")
-        if llm == "groq" and not config.groq_api_key():
+        if not config.groq_api_key():
             st.warning("GROQ_API_KEY is not set. Copy `.env.example` to `.env` and add your key (see README).")
     return use_sample, run_eval, run_ragas and run_eval
 

@@ -281,32 +281,3 @@ def test_intake_declines_with_a_clarifying_question_and_fails_open(monkeypatch):
 
     monkeypatch.setattr(intake, "ask_json", down)
     assert workflow.orchestrator("food delivery in Nepal").final  # fails open
-
-
-def test_bedrock_provider_parses_claude_json_and_counts_usage(monkeypatch):
-    from market_research import llm
-    from market_research.models import Critique
-
-    monkeypatch.setenv("LLM_PROVIDER", "bedrock")
-    seen = {}
-
-    class Client:
-        def converse(self, **kw):
-            seen.update(kw)
-            text = '```json\n{"approved": true, "issues": []}\n```'
-            return {"output": {"message": {"content": [{"text": text}]}},
-                    "usage": {"inputTokens": 11, "outputTokens": 5}}
-
-    monkeypatch.setattr(llm, "_bedrock_client", lambda: Client())
-    before = llm.usage_snapshot()
-    out = llm.ask_json(Critique, "system", "user")
-    after = llm.usage_snapshot()
-    assert out.approved and seen["modelId"] == config.bedrock_model_id()
-    assert after["input_tokens"] - before["input_tokens"] == 11 and after["calls"] - before["calls"] == 1
-
-
-@pytest.mark.parametrize("name,word", [("NoCredentialsError", "AWS credentials"), ("AccessDeniedException", "Model access"),
-                                       ("ThrottlingException", "rate limit")])
-def test_bedrock_errors_are_friendly(name, word):
-    exc = type(name, (Exception,), {})("boom")
-    assert word in explain_error(exc)

@@ -31,22 +31,3 @@ resource "aws_iam_role_policy" "execution_secrets" {
     }]
   })
 }
-
-# Task role: what the running app may do. Only invoking Bedrock models.
-resource "aws_iam_role" "task" {
-  name               = "${var.project}-task"
-  assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
-}
-
-resource "aws_iam_role_policy" "task_bedrock" {
-  name = "invoke-bedrock"
-  role = aws_iam_role.task.id
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
-      Resource = "*" # foundation models and cross-region inference profiles
-    }]
-  })
-}

@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Install dependencies first so code changes do not invalidate this layer.
 COPY requirements.txt .
-RUN pip install -r requirements.txt boto3
+RUN pip install -r requirements.txt
 
 COPY . .
 RUN useradd --create-home app && chown -R app /app

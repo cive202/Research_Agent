@@ -9,7 +9,7 @@ runs locally with `streamlit run app.py`.
 ## What it creates
 
 VPC with two public subnets (no NAT gateway, to save about $30/month), ALB, ECS cluster and Fargate service, ECR repo,
-CloudWatch log group, a Secrets Manager secret for the API keys, IAM roles (the task role may only call Bedrock), an
+CloudWatch log group, a Secrets Manager secret for the API keys, an IAM execution role, an
 optional budget alert and an optional GitHub OIDC deploy role.
 
 **Cost:** roughly $30 to $40 per month while running (ALB about $17 to $20, one small Fargate task about $15).
@@ -42,13 +42,6 @@ terraform apply -var 'alert_email=you@example.com'      # optional: budget alert
 
 Apply with `-var 'github_repo=owner/name'`, then add the repository secret `AWS_ROLE_ARN` (value: `terraform output
 deploy_role_arn`) and run the **Deploy to AWS** workflow manually. It uses OIDC, so no AWS keys are stored in GitHub.
-
-## Using Claude on Bedrock
-
-In the AWS console open **Bedrock, Model access** and enable a Claude model in your region. In the sidebar choose
-**bedrock**, or set `LLM_PROVIDER=bedrock` and `BEDROCK_MODEL_ID` (the default is a cross-region inference profile ID,
-so check it against what your account lists). The task role already allows `bedrock:InvokeModel`. Locally, run
-`pip install boto3` and `aws configure`.
 
 ## Known limits
 

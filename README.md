@@ -54,7 +54,6 @@ Python 3.10 or newer is required.
 |---|---|---|---|
 | `GROQ_API_KEY` | **Yes** (LLM for all four roles) | https://console.groq.com/keys | Free tier, rate limited |
 | `TAVILY_API_KEY` | No | https://app.tavily.com | Better search; without it the app uses DuckDuckGo |
-| AWS credentials | No | `aws configure` | Only for `LLM_PROVIDER=bedrock` |
 
 Never commit `.env` (it is in `.gitignore`); `.env.example` only holds placeholders.
 
@@ -79,14 +78,12 @@ warning banner is shown in the UI, the brief summary starts with `SAMPLE DATA`, 
 carry the same warning. The app also falls back to sample data automatically when no search provider works, and says
 why under "missing information". The LLM key is still required, because the Analyst and Critic still call the model.
 
-### Optional: Docker, AWS Bedrock and AWS deployment
+### Optional: Docker and AWS deployment
 
 ```bash
 docker compose up --build            # http://localhost:8501, reads keys from your local .env
 ```
 
-- **Claude on AWS Bedrock** instead of Groq: `pip install boto3`, run `aws configure`, enable a Claude model in the
-  Bedrock console, then pick **bedrock** in the sidebar (or set `LLM_PROVIDER=bedrock`, `BEDROCK_MODEL_ID`, `AWS_REGION`).
 - **Deploy to AWS (ECS Fargate + ALB)** with the Terraform in `infra/` and the manual `deploy.yml` workflow. This is
   written but **not yet applied or verified**; read `infra/README.md` (cost, setup, teardown) before using it.
 
@@ -291,7 +288,7 @@ market_research/
   grounding.py               No-LLM grounding check and source derivation
   workflow.py                Orchestrator (LangGraph), agent trace, revision limit
   search.py                  Tavily, then DuckDuckGo
-  llm.py                     LLM wrapper (Groq or Bedrock Claude): timeout, JSON validation, retries, friendly errors
+  llm.py                     Groq wrapper: timeout, JSON validation, retries, friendly errors
   intake.py                  Orchestrator check: clarify or decline queries that are not a company or industry
   rendering.py               Markdown / JSON export
   agents/                    researcher.py, analyst.py, critic.py, sample_data.py

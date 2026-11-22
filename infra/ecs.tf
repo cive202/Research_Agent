@@ -14,18 +14,12 @@ resource "aws_ecs_task_definition" "app" {
   cpu                      = var.container_cpu
   memory                   = var.container_memory
   execution_role_arn       = aws_iam_role.execution.arn
-  task_role_arn            = aws_iam_role.task.arn
 
   container_definitions = jsonencode([{
     name         = "app"
     image        = "${aws_ecr_repository.app.repository_url}:${var.image_tag}"
     essential    = true
     portMappings = [{ containerPort = 8501, protocol = "tcp" }]
-    environment = [
-      { name = "LLM_PROVIDER", value = "groq" },
-      { name = "AWS_REGION", value = var.aws_region },
-      { name = "BEDROCK_MODEL_ID", value = var.bedrock_model_id },
-    ]
     secrets = [
       { name = "GROQ_API_KEY", valueFrom = "${aws_secretsmanager_secret.keys.arn}:GROQ_API_KEY::" },
       { name = "TAVILY_API_KEY", valueFrom = "${aws_secretsmanager_secret.keys.arn}:TAVILY_API_KEY::" },

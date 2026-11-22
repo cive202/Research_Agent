@@ -1,7 +1,7 @@
 variable "aws_region" {
   type        = string
   default     = "us-east-1"
-  description = "Region for everything, including Bedrock. Pick one where your Claude model is enabled."
+  description = "Region for everything."
 }
 
 variable "project" {
@@ -30,12 +30,6 @@ variable "container_cpu" {
 variable "container_memory" {
   type    = number
   default = 1024
-}
-
-variable "bedrock_model_id" {
-  type        = string
-  default     = "us.anthropic.claude-sonnet-4-20250514-v1:0"
-  description = "Bedrock model or inference profile ID. It must be enabled in the Bedrock console (Model access)."
 }
 
 variable "alert_email" {
