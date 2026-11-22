@@ -1,0 +1,13 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+.env
+.pytest_cache
+.ruff_cache
+runs
+research
+eval_data/calibration-*.json
+infra
+.github

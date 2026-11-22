@@ -54,6 +54,7 @@ Python 3.10 or newer is required.
 |---|---|---|---|
 | `GROQ_API_KEY` | **Yes** (LLM for all four roles) | https://console.groq.com/keys | Free tier, rate limited |
 | `TAVILY_API_KEY` | No | https://app.tavily.com | Better search; without it the app uses DuckDuckGo |
+| AWS credentials | No | `aws configure` | Only for `LLM_PROVIDER=bedrock` |
 
 Never commit `.env` (it is in `.gitignore`); `.env.example` only holds placeholders.
 
@@ -78,6 +79,17 @@ warning banner is shown in the UI, the brief summary starts with `SAMPLE DATA`, 
 carry the same warning. The app also falls back to sample data automatically when no search provider works, and says
 why under "missing information". The LLM key is still required, because the Analyst and Critic still call the model.
 
+### Optional: Docker, AWS Bedrock and AWS deployment
+
+```bash
+docker compose up --build            # http://localhost:8501, reads keys from your local .env
+```
+
+- **Claude on AWS Bedrock** instead of Groq: `pip install boto3`, run `aws configure`, enable a Claude model in the
+  Bedrock console, then pick **bedrock** in the sidebar (or set `LLM_PROVIDER=bedrock`, `BEDROCK_MODEL_ID`, `AWS_REGION`).
+- **Deploy to AWS (ECS Fargate + ALB)** with the Terraform in `infra/` and the manual `deploy.yml` workflow. This is
+  written but **not yet applied or verified**; read `infra/README.md` (cost, setup, teardown) before using it.
+
 ## Architecture
 
 ```mermaid
@@ -97,7 +109,7 @@ flowchart LR
 
 | Role | File | What it does |
 |---|---|---|
-| Orchestrator | `market_research/workflow.py` | LangGraph state machine; runs the roles in order, records the trace, enforces the revision limit |
+| Orchestrator | `market_research/workflow.py`, `intake.py` | Checks the query (asks a clarifying question for vague or off-topic input), runs the roles in order with a LangGraph state machine, records the trace, enforces the revision limit |
 | Researcher | `market_research/agents/researcher.py`, `search.py` | Plans 3 queries, searches (Tavily, else DuckDuckGo, else sample data), dedupes by URL, extracts at most 10 findings and numbers them F1.. in code |
 | Analyst | `market_research/agents/analyst.py` | Writes the brief using only the numbered findings; every observation and competitor cites `[F#]`; sources are derived from the cited findings |
 | Critic | `market_research/agents/critic.py` | Reviews the draft in a fresh LLM call, together with the grounding flags |
@@ -279,7 +291,8 @@ market_research/
   grounding.py               No-LLM grounding check and source derivation
   workflow.py                Orchestrator (LangGraph), agent trace, revision limit
   search.py                  Tavily, then DuckDuckGo
-  llm.py                     Groq wrapper: timeout, JSON validation, retries, friendly errors
+  llm.py                     LLM wrapper (Groq or Bedrock Claude): timeout, JSON validation, retries, friendly errors
+  intake.py                  Orchestrator check: clarify or decline queries that are not a company or industry
   rendering.py               Markdown / JSON export
   agents/                    researcher.py, analyst.py, critic.py, sample_data.py
   evaluation/                rules.py, judges.py, verdict.py, tamper.py, batch.py, calibration.py
@@ -287,7 +300,9 @@ market_research/
 guidelines/  profiles/       Editable markdown inputs
 samples/  sample_output.md   Real and sample-data outputs
 tests/                       pytest (mocked, no API keys)
-.github/workflows/ci.yml     ruff + pytest
+.github/workflows/         ci.yml (ruff, pytest, Docker build + smoke test), deploy.yml (manual AWS deploy)
+Dockerfile docker-compose.yml Makefile   Container and shortcuts
+infra/                       Terraform for ECS Fargate + ALB (unapplied, see infra/README.md)
 ```
 
 ## Credits

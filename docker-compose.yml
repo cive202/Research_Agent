@@ -1,0 +1,12 @@
+# docker compose up --build   ->  http://localhost:8501
+# Keys come from your local .env (never baked into the image).
+services:
+  app:
+    build: .
+    ports:
+      - "8501:8501"
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./runs:/app/runs
