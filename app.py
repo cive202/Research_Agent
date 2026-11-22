@@ -254,16 +254,21 @@ def render_metrics(state: WorkflowState) -> None:
     r = state.research
     seconds = sum(m.seconds for m in state.metrics)
     tokens = sum(m.input_tokens + m.output_tokens for m in state.metrics)
-    verdict = state.evaluation.verdict.replace("RAG ", "") if state.evaluation else "not run"
+    verdict = {"RAG WORKING": "Pass", "RAG NOT WORKING": "Fail", "RAG NOT ACTIVE": "Not active"}.get(
+        state.evaluation.verdict, state.evaluation.verdict) if state.evaluation else "Not run"
     critic = "approved" if state.critique and state.critique.approved else (
         "revised" if state.revised else "changes asked")
     cols = st.columns(5)
     cols[0].metric("Findings", len(r.findings), help="Numbered facts the brief may cite")
     cols[1].metric("Sources", len(r.sources), help=f"Provider: {r.provider or r.mode}")
     cols[2].metric("Critic", critic, help=f"{len(state.drafts)} version(s) of the brief")
-    cols[3].metric("RAG check", verdict.title(), help="Evaluator verdict (Quality tab)")
+    failed = ", ".join(state.evaluation.failed_checks) if state.evaluation and state.evaluation.failed_checks else ""
+    cols[3].metric("RAG check", verdict, help="Evaluator verdict, details in the Quality tab"
+                   + (f". Failed: {failed}" if failed else ""))
     cols[4].metric("Run time", f"{int(seconds // 60)}m {int(seconds % 60):02d}s" if seconds >= 60
                    else f"{seconds:.0f}s", help=f"{tokens:,} LLM tokens")
+    if failed:
+        st.caption(f"⚠️ RAG check failed on: **{failed}**. See the Quality tab for the reasons.")
 
 
 def render_result(state: WorkflowState) -> None:

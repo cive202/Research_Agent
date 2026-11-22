@@ -119,10 +119,16 @@ def _short(text: str, n: int = 90) -> str:
 
 CSS = """
 <style>
-.mr-pipe{display:flex;gap:.5rem;align-items:stretch;margin:.25rem 0 .75rem;flex-wrap:wrap}
-.mr-card{flex:1 1 7.5rem;min-width:7.5rem;border:1px solid rgba(128,128,128,.30);border-radius:.75rem;
- padding:.6rem .65rem;background:rgba(128,128,128,.06);position:relative;transition:all .3s ease}
-.mr-head{display:flex;align-items:center;gap:.4rem;font-weight:600;font-size:.92rem}
+.mr-pipe{display:grid;gap:.6rem;margin:.25rem 0 .75rem}
+.mr-card{min-width:0;border:1px solid rgba(128,128,128,.30);border-radius:.75rem;
+ padding:.55rem .6rem;background:rgba(128,128,128,.06);position:relative;transition:all .3s ease}
+.mr-card:not(:last-child)::after{content:"➜";position:absolute;right:-.58rem;top:50%;transform:translateY(-50%);
+ font-size:.62rem;opacity:.35;z-index:1}
+.mr-card.mr-lit:not(:last-child)::after{opacity:.9;color:#16a34a}
+.mr-head{display:flex;align-items:center;gap:.35rem;font-weight:600;font-size:.86rem;min-width:0}
+.mr-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+@media (max-width:640px){.mr-pipe{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .mr-card::after{display:none}}
 .mr-ico{font-size:1.05rem}
 .mr-badge{margin-left:auto;width:1.35rem;height:1.35rem;border-radius:50%;display:flex;align-items:center;
  justify-content:center;font-size:.8rem;font-weight:700;flex:none}
@@ -139,8 +145,6 @@ CSS = """
 .mr-done .mr-badge{background:#16a34a;color:#fff;animation:mr-pop .35s ease-out}
 .mr-error{border-color:#dc2626;background:rgba(220,38,38,.10)}
 .mr-error .mr-badge{background:#dc2626;color:#fff}
-.mr-arrow{align-self:center;opacity:.35;font-size:.9rem}
-.mr-arrow.mr-lit{opacity:.9;color:#16a34a}
 .mr-bar{height:6px;border-radius:3px;background:rgba(128,128,128,.18);overflow:hidden;margin:.35rem 0 .2rem}
 .mr-fill{height:100%;background:linear-gradient(90deg,#3b82f6,#16a34a);transition:width .5s ease}
 .mr-run .mr-fill{background-size:200% 100%;background-image:linear-gradient(90deg,#3b82f6,#60a5fa,#3b82f6);
@@ -177,13 +181,11 @@ def render_html(t: AgentTracker, feed_lines: int = 8) -> str:
     else:
         label, cls = (f"{t.active} is working…" if t.active else "Starting…"), " mr-run"
     share = 100 if t.finished and not t.failed else int(100 * (t.done_count() + 0.5 * bool(t.active)) / n)
+    clock_text = "" if t.finished and not t.failed else f" · {_fmt(t.total())}"  # "Done in …" already has it
     parts = [CSS, f'<div class="mr-top"><span>Agent pipeline</span><span class="mr-state">{html.escape(label)}'
-             f' · {_fmt(t.total())}</span></div>',
-             f'<div class="mr-bar{cls}"><div class="mr-fill" style="width:{share}%"></div></div><div class="mr-pipe">']
-    for i, (role, s) in enumerate(t.stages.items()):
-        if i:
-            lit = " mr-lit" if s.status in ("active", "done") else ""
-            parts.append(f'<div class="mr-arrow{lit}">➜</div>')
+             f'{clock_text}</span></div>',
+             f'<div class="mr-bar{cls}"><div class="mr-fill" style="width:{share}%"></div></div><div class="mr-pipe" style="grid-template-columns:repeat({n},minmax(0,1fr))">']
+    for role, s in t.stages.items():
         icon, blurb = ROLE_INFO.get(role, ("•", ""))
         sub = _short(s.detail, 70) if s.detail and s.status in ("active", "error") else blurb
         if s.status == "waiting":
@@ -193,8 +195,9 @@ def render_html(t: AgentTracker, feed_lines: int = 8) -> str:
         else:
             when = _fmt(s.elapsed(now)) + (f" · ×{s.runs}" if s.runs > 1 else "")
         parts.append(
-            f'<div class="mr-card mr-{s.status}" title="{html.escape(s.detail or blurb)}">'
-            f'<div class="mr-head"><span class="mr-ico">{icon}</span>{html.escape(role)}'
+            f'<div class="mr-card mr-{s.status}{" mr-lit" if s.status == "done" else ""}" '
+            f'title="{html.escape(s.detail or blurb)}">'
+            f'<div class="mr-head"><span class="mr-ico">{icon}</span><span class="mr-name">{html.escape(role)}</span>'
             f'<span class="mr-badge">{_BADGE[s.status]}</span></div>'
             f'<div class="mr-sub">{html.escape(sub)}</div><div class="mr-time">{when}</div></div>')
     parts.append("</div>")

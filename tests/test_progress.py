@@ -49,6 +49,8 @@ def test_revision_reactivates_analyst_and_completion_ticks_everything():
     assert set(statuses(t).values()) == {"done"} and t.feed[-1][2].startswith("run files saved")
     assert t.stages["Analyst"].runs == 2
     html = render_html(t)
+    header = html[html.index('class="mr-top"'):html.index('class="mr-bar')]
+    assert "Done in 16s" in header and header.count("16s") == 1  # the total is shown once
     assert "Done in" in html and "×2" in html and html.count("✓") == 5 and 'class="mr-bar mr-run"' not in html
 
 
