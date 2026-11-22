@@ -28,7 +28,10 @@ SYSTEM = (
     "Do not raise nitpicks or restate the same problem twice. Approve (approved=true, no issues) unless "
     "there is a real problem. Style problems include vague generalisations ('most companies'), em dashes "
     "and these phrases: " + ", ".join(f"'{p}'" for p in config.BANNED_PHRASES[:8])
-    + ". When not approved, also fill revision_instructions with a one-paragraph summary."
+    + ". FOCUS: the brief must be about the focus given in the prompt, not the world in general: at most "
+    "one observation may rest on BACKGROUND findings (on_focus=false), worded as general context, and no "
+    "competitor may rest on background findings alone (rule='research'). "
+    "When not approved, also fill revision_instructions with a one-paragraph summary. " + config.UNTRUSTED_NOTE
 )
 
 
@@ -40,8 +43,9 @@ def critic(state: WorkflowState, draft: Brief | None = None) -> Critique:
     profiles = writing_context(include_examples=False)
     flags = check_grounding(draft, state.research)
     flag_text = "\n".join(f"- [{f.code}] {f.section}: {f.message}" for f in flags) or "(none)"
+    focus = ", ".join(state.research.focus) if state.research and state.research.focus else "(none named)"
     user = (
-        f"Query: {state.query}\n\nGuideline:\n{guideline}"
+        f"Query: {state.query}\nFocus: {focus}\n\nGuideline:\n{guideline}"
         + (f"\n\nWriting profiles:\n{profiles}" if profiles else "")
         + f"\n\nFindings:\n{findings}\n\nGrounding flags:\n{flag_text}"
         + f"\n\nDraft brief:\n{draft.model_dump_json(indent=2)}"

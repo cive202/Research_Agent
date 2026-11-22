@@ -48,10 +48,17 @@ def check_grounding(brief: Brief, research: Research | None) -> list[GroundingFl
         extra = brief.competitors_dropped or len(brief.competitors) - MAX_COMPETITORS
         flags.append(GroundingFlag(code="too_many_competitors", section="competitors",
                                    message=f"{extra} competitor(s) beyond the limit of {MAX_COMPETITORS} were removed."))
+    on_focus = {f.id: f.on_focus for f in research.findings} if research else {}
     for c in brief.competitors:
-        if not check_ids(f"{c.name} {c.note}", "competitors", f"Competitor {c.name}"):
+        ids = check_ids(f"{c.name} {c.note}", "competitors", f"Competitor {c.name}")
+        if not ids:
             flags.append(GroundingFlag(code="unsupported_competitor", section="competitors",
                                        message=f"Competitor {c.name} cites no existing finding."))
+        elif research and research.focus and not any(on_focus.get(i, True) for i in ids):
+            flags.append(GroundingFlag(
+                code="background_competitor", section="competitors",
+                message=f"Competitor {c.name} is backed only by background findings that do not mention "
+                        f"{', '.join(research.focus)}."))
     for s in brief.sources:
         if s.url and normalize_url(s.url) not in urls:
             flags.append(GroundingFlag(code="unknown_source", section="sources",

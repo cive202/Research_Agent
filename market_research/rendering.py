@@ -49,9 +49,12 @@ def evidence_to_markdown(state: WorkflowState) -> list[str]:
     if not state.research:
         return []
     lines = ["## Evidence (findings the brief may cite)"]
+    if state.research.focus:
+        lines.append(f"Focus: {', '.join(state.research.focus)}. Findings marked *(background)* do not mention it.")
     for f in state.research.findings:
         src = f"[{f.source_title or f.source_url}]({f.source_url})" if f.source_url else (f.source_title or "no source")
-        lines.append(f"- **{f.id}** {f.claim} ({src})")
+        tag = "" if f.on_focus else " *(background)*"
+        lines.append(f"- **{f.id}**{tag} {f.claim} ({src})")
     return lines + [""]
 
 

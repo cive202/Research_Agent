@@ -120,11 +120,11 @@ flowchart LR
 
 | Role | File | What it does |
 |---|---|---|
-| Orchestrator | `market_research/workflow.py`, `intake.py` | Checks the query (asks a clarifying question for vague or off-topic input), runs the roles in order with a LangGraph state machine, records the trace, enforces the revision limit |
-| Researcher | `market_research/agents/researcher.py`, `search.py` | Plans 3 queries, searches (Tavily, else DuckDuckGo, else sample data), dedupes by URL, extracts at most 10 findings and numbers them F1.. in code |
+| Orchestrator | `market_research/workflow.py`, `intake.py` | Checks the query (asks a clarifying question for vague, off-topic or ambiguous input, such as a city name that exists in two countries), runs the roles in order with a LangGraph state machine, records the trace, enforces the revision limit |
+| Researcher | `market_research/agents/researcher.py`, `search.py`, `focus.py` | Plans 3 queries and the focus (place or company), searches (Tavily, else DuckDuckGo, else sample data), dedupes by URL, extracts at most 10 findings and numbers them F1.. in code |
 | Analyst | `market_research/agents/analyst.py` | Writes the brief using only the numbered findings; every observation and competitor cites `[F#]`; sources are derived from the cited findings |
 | Critic | `market_research/agents/critic.py` | Reviews the draft in a fresh LLM call, together with the grounding flags |
-| Grounding check | `market_research/grounding.py` | No LLM. Flags uncited observations, unknown `[F#]` IDs, more than two competitors, competitors without a finding, source URLs not in the findings |
+| Grounding check | `market_research/grounding.py` | No LLM. Flags uncited observations, unknown `[F#]` IDs, more than two competitors, competitors without a finding, competitors backed only by background findings, source URLs not in the findings |
 
 All roles use the same Groq model. Every handoff is a Pydantic model (`market_research/models.py`): `Research` (findings),
 `Brief` (draft), `Critique` (feedback), all held in one `WorkflowState` together with the run trace.
@@ -141,6 +141,12 @@ All roles use the same Groq model. Every handoff is a Pydantic model (`market_re
   revenue or market share figures were found" to the brief. Numbers are never invented.
 - **Fail soft.** LLM calls have a timeout and retry once on invalid JSON. Errors are turned into short messages (missing
   key, rate limit, no network); the UI never shows a stack trace. The trace and any partial result are kept.
+- **Stay on the market that was asked about.** The planner names the focus (for example `Bharatpur, Nepal`). Code then
+  adds it to every search query, ranks sources that mention it first and keeps at most 3 that do not, labelled
+  background. The Analyst may use background only as general context, and a competitor backed only by background is a
+  grounding flag. Planning prompts get today's date, so searches ask for recent data instead of old years.
+- **Web text is untrusted.** Every prompt that shows retrieved text tells the model to treat it as evidence only and
+  ignore instructions inside it.
 - **Search fallback chain.** Tavily, then DuckDuckGo, then labelled sample data, so the app always produces something
   that is honest about its source.
 
@@ -191,7 +197,9 @@ Instead of a one-line query you can pass a markdown guideline (`guidelines/TEMPL
 `guidelines/nepal-food-delivery.md`) with the angle, audience, key questions, must-include items, seed links and
 constraints. Key questions become the first searches and the Analyst and Critic both see the guideline. Writing style
 comes from `profiles/*.md` and one few-shot example in `profiles/examples/`. After extraction the Researcher also reads
-its own data gaps, plans follow-up searches for them (up to `MAX_GAP_ROUNDS`) and re-extracts.
+its own data gaps, plans follow-up searches for them and re-extracts. The number of rounds is the sidebar slider
+"Gap-filling search rounds" (0-3, default `MAX_GAP_ROUNDS` = 2) or `--gap-rounds` on the CLI; 0 turns it off and
+saves about a third of the tokens.
 
 Every run writes `runs/<time>-<query>/` with `research.md`, `draft_v0.md` (and `draft_v1.md` if revised), `reviews.md`,
 `final.md` and `state.json` (full shared state, per-step seconds and LLM tokens). `--no-save` on the CLI skips this.
@@ -201,7 +209,7 @@ Every run writes `runs/<time>-<query>/` with `research.md`, `draft_v0.md` (and `
 ```bash
 python -m market_research run "Analyze the food delivery market in Nepal" --out brief.md
 python -m market_research run --guideline guidelines/nepal-food-delivery.md
-# options: --sample  --no-eval  --force-revision (tests the revision path)
+# options: --sample  --no-eval  --force-revision (tests the revision path)  --gap-rounds 0-3
 ```
 
 ## Claude Code: MCP server and skill
@@ -300,6 +308,7 @@ market_research/
   config.py                  Env lookups, limits, evaluation thresholds
   models.py                  Pydantic models for shared data (Finding, Research, Brief, Critique, WorkflowState)
   grounding.py               No-LLM grounding check and source derivation
+  focus.py                   No-LLM focus enforcement: focus in every query, on-focus ranking, background cap
   workflow.py                Orchestrator (LangGraph), agent trace, revision limit
   search.py                  Tavily, then DuckDuckGo
   llm.py                     Groq wrapper: timeout, JSON validation, retries, friendly errors
@@ -318,4 +327,5 @@ Dockerfile docker-compose.yml Makefile   Container and shortcuts
 ## Credits
 
 Structure and ideas were informed by open-source market-research agent projects (MIT licensed), including
-Market-Intelligence-Agent and Market-Research-Agent. No code was copied from them.
+Market-Intelligence-Agent and Market-Research-Agent. The focus/background ranking and the ambiguity question were
+inspired by ai-research-assistant by Royas Shakya (MIT). No code was copied from them.

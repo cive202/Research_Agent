@@ -7,6 +7,7 @@ from market_research import config, orchestrator
 from market_research.guideline import parse_guideline
 from market_research.llm import LLMError, explain_error
 from market_research.models import EvaluationReport, WorkflowState
+from market_research.progress import AgentTracker, render_feed_html, render_html
 from market_research.rendering import (
     SAMPLE_WARNING,
     brief_to_markdown,
@@ -22,9 +23,10 @@ EXAMPLES = [
     "Analyze Pathao as a company",
 ]
 ROLES = ["Orchestrator", "Researcher", "Analyst", "Critic"]
+CLARIFY_PREFIX = "One question before I start:"
 
 
-def render_sidebar() -> tuple[bool, bool, bool]:
+def render_sidebar() -> tuple[bool, bool, bool, int]:
     with st.sidebar:
         st.header("Options")
         use_sample = st.checkbox(
@@ -43,27 +45,29 @@ def render_sidebar() -> tuple[bool, bool, bool]:
             disabled=not run_eval,
             help="Adds RAGAS faithfulness and context precision (informational, many extra LLM calls).",
         )
+        gap_rounds = st.slider(
+            "Gap-filling search rounds",
+            min_value=0, max_value=3, value=config.MAX_GAP_ROUNDS,
+            disabled=use_sample,
+            help="After the first pass, the Researcher searches again for facts it could not find (for example "
+                 "market size). More rounds give fuller briefs but take longer and use more Groq tokens. "
+                 "0 turns it off.",
+        )
         provider = "Tavily" if config.tavily_api_key() else "DuckDuckGo (no key needed)"
         st.caption(f"Search provider: {'sample data' if use_sample else provider}. "
                    f"The Critic may request at most {config.MAX_REVIEW_ITERATIONS} revision.")
         if not config.groq_api_key():
             st.warning("GROQ_API_KEY is not set. Copy `.env.example` to `.env` and add your key (see README).")
-    return use_sample, run_eval, run_ragas and run_eval
+    return use_sample, run_eval, run_ragas and run_eval, gap_rounds
 
 
-def role_progress(slot, message: str, done: set, current: list) -> None:
-    """Update the one-line role tracker: finished roles get a tick, the active role a spinner."""
-    role = message.split(":", 1)[0]
-    if role in ROLES:
-        if current and current[0] != role:
-            done.add(current[0])
-        current[:] = [role]
-    icons = {r: "✅" if r in done else ("⏳" if current and current[0] == r else "⬜") for r in ROLES}
-    slot.markdown("  ➜  ".join(f"{icons[r]} {r}" for r in ROLES))
+def draw(slot, tracker: AgentTracker, feed_lines: int = 8) -> None:
+    """Redraw the pipeline: pulsing card for the working role, ticks for finished ones, live activity feed."""
+    slot.markdown(render_html(tracker, feed_lines), unsafe_allow_html=True)
 
 
 def run_workflow(query: str, use_sample: bool, run_eval: bool, ragas: bool = False,
-                 guideline_text: str = "") -> None:
+                 guideline_text: str = "", gap_rounds: int = config.MAX_GAP_ROUNDS) -> None:
     guideline = None
     if guideline_text.strip():
         try:
@@ -75,31 +79,33 @@ def run_workflow(query: str, use_sample: bool, run_eval: bool, ragas: bool = Fal
         st.warning("Enter a company or industry first, or click an example.")
         return
     st.session_state.pop("state", None)  # never show an older run next to a new failure
-    done: set = set()
-    current: list = []
+    st.session_state.pop("tracker", None)
+    tracker = AgentTracker(ROLES + (["Evaluator"] if run_eval else []))
+    slot = st.empty()
+    tracker.update("Orchestrator: checking the query...")
+    draw(slot, tracker)
+
+    def on_step(msg: str) -> None:
+        tracker.update(msg)
+        draw(slot, tracker)
+
     try:
-        with st.status("Running agents...", expanded=True) as status:
-            slot = st.empty()
-            role_progress(slot, "", done, current)
-
-            def on_step(msg: str) -> None:
-                role_progress(slot, msg, done, current)
-                st.write(msg)
-
-            state = orchestrator(query, use_sample=use_sample, on_step=on_step, evaluate_rag=run_eval,
-                                 ragas=ragas, save_dir=config.RUNS_DIR, guideline=guideline,
-                                 raise_errors=False)
-            if state.error:
-                status.update(label="Stopped early", state="error")
-            else:
-                done.update(ROLES)
-                role_progress(slot, "", done, [])
-                status.update(label="Done", state="complete")
+        state = orchestrator(query, use_sample=use_sample, on_step=on_step, evaluate_rag=run_eval,
+                             ragas=ragas, save_dir=config.RUNS_DIR, guideline=guideline,
+                             raise_errors=False, max_gap_rounds=gap_rounds)
+        if state.error:
+            tracker.fail(state.error)
+        elif not tracker.finished:
+            tracker.finish()
         st.session_state["state"] = state
     except (LLMError, ValueError) as e:  # bad input or a problem the user can fix
-        st.error(str(e))
+        tracker.fail("needs clarification" if str(e).startswith(CLARIFY_PREFIX) else str(e))
+        (st.info if str(e).startswith(CLARIFY_PREFIX) else st.error)(str(e))
     except Exception as e:  # never show a raw stack trace
+        tracker.fail(explain_error(e))
         st.error(explain_error(e))
+    draw(slot, tracker, feed_lines=0)  # the finished pipeline; the full log moves into an expander
+    st.session_state["tracker"] = tracker
 
 
 def render_brief(state: WorkflowState) -> None:
@@ -137,8 +143,12 @@ def render_evidence(state: WorkflowState) -> None:
     r = state.research
     st.caption(f"{len(r.findings)} numbered findings from {len(r.sources)} retrieved documents "
                f"(provider: {r.provider or r.mode}). The brief may only cite these IDs.")
-    rows = [{"ID": f.id, "Claim": f.claim, "Source": f.source_url or f.source_title or "n/a",
-             "Snippet": f.snippet} for f in r.findings]
+    if r.focus:
+        background = sum(not f.on_focus for f in r.findings)
+        st.caption(f"Focus: **{', '.join(r.focus)}**. {background} finding(s) do not mention it and are "
+                   "marked background: the brief may use them only as general context.")
+    rows = [{"ID": f.id, "Focus": "yes" if f.on_focus else "background", "Claim": f.claim,
+             "Source": f.source_url or f.source_title or "n/a", "Snippet": f.snippet} for f in r.findings]
     st.dataframe(rows, hide_index=True, width="stretch", column_config={
         "Source": st.column_config.LinkColumn("Source", display_text=r"https?://(?:www\.)?([^/]+)"),
     })
@@ -226,8 +236,35 @@ def render_downloads(state: WorkflowState) -> None:
                        file_name="research_run.json", mime="application/json")
 
 
+def render_activity(tracker: AgentTracker | None, show_pipeline: bool) -> None:
+    """The finished pipeline (on reruns, e.g. after switching tabs) and the full activity log."""
+    if tracker is None:
+        return
+    if show_pipeline:
+        st.markdown(render_html(tracker, feed_lines=0), unsafe_allow_html=True)
+    with st.expander(f"Activity log ({len(tracker.feed)} steps)"):
+        st.markdown(render_feed_html(tracker), unsafe_allow_html=True)
+
+
+def render_metrics(state: WorkflowState) -> None:
+    """Headline numbers above the tabs."""
+    r = state.research
+    seconds = sum(m.seconds for m in state.metrics)
+    tokens = sum(m.input_tokens + m.output_tokens for m in state.metrics)
+    verdict = state.evaluation.verdict.replace("RAG ", "") if state.evaluation else "not run"
+    critic = "approved" if state.critique and state.critique.approved else (
+        "revised" if state.revised else "changes asked")
+    cols = st.columns(5)
+    cols[0].metric("Findings", len(r.findings), help="Numbered facts the brief may cite")
+    cols[1].metric("Sources", len(r.sources), help=f"Provider: {r.provider or r.mode}")
+    cols[2].metric("Critic", critic, help=f"{len(state.drafts)} version(s) of the brief")
+    cols[3].metric("RAG check", verdict.title(), help="Evaluator verdict (Quality tab)")
+    cols[4].metric("Run time", f"{int(seconds // 60)}m {int(seconds % 60):02d}s" if seconds >= 60
+                   else f"{seconds:.0f}s", help=f"{tokens:,} LLM tokens")
+
+
 def render_result(state: WorkflowState) -> None:
-    st.divider()
+    render_metrics(state)
     if state.research.mode == "sample":
         st.warning(SAMPLE_WARNING)
     t_brief, t_evidence, t_trace, t_quality = st.tabs(["Brief", "Evidence", "Agent trace", "Quality"])
@@ -245,9 +282,10 @@ def render_result(state: WorkflowState) -> None:
 def main() -> None:
     st.set_page_config(page_title="Market Research Agents", page_icon="🔎", layout="centered")
     st.title("Market research brief")
-    st.caption("Orchestrator → Researcher → Analyst → Critic (at most one revision) → Evaluator.")
+    st.caption("Five roles work in turn: Orchestrator → Researcher → Analyst → Critic (at most one revision) → "
+               "Evaluator. Watch them work below once you start.")
 
-    use_sample, run_eval, run_ragas = render_sidebar()
+    use_sample, run_eval, run_ragas, gap_rounds = render_sidebar()
     if "query" not in st.session_state:
         st.session_state["query"] = ""
     st.markdown("Try an example:")
@@ -264,8 +302,10 @@ def main() -> None:
         guideline_text = st.text_area("Guideline markdown", height=260,
                                       placeholder=template.read_text(encoding="utf-8") if template.is_file() else "")
     started = st.button("Start research", type="primary")
-    if started or st.session_state.pop("autorun", False):
-        run_workflow(query, use_sample, run_eval, run_ragas, guideline_text)
+    ran_now = bool(started or st.session_state.pop("autorun", False))
+    if ran_now:
+        run_workflow(query, use_sample, run_eval, run_ragas, guideline_text, gap_rounds)
+    render_activity(st.session_state.get("tracker"), show_pipeline=not ran_now)
 
     state = st.session_state.get("state")
     if state and state.error:

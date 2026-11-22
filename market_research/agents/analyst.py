@@ -30,7 +30,12 @@ SYSTEM = (
     "Follow the writing profiles. Example briefs show the style only: never copy their facts. "
     "Write plain, specific sentences with concrete names and figures from the findings. Avoid vague "
     "generalisations such as 'most companies', em dashes, and these phrases: "
-    + ", ".join(f"'{p}'" for p in config.BANNED_PHRASES[:10]) + "."
+    + ", ".join(f"'{p}'" for p in config.BANNED_PHRASES[:10]) + ". "
+    "FOCUS: the brief is about the focus place or company given in the prompt; name it in the summary. "
+    "Findings with on_focus=false are BACKGROUND (they do not mention the focus): use them for at most one "
+    "observation, worded as general context (for example 'Globally, ...'), and never name a competitor "
+    "from background findings alone. If few findings are about the focus, say so plainly in the summary. "
+    + config.UNTRUSTED_NOTE
 )
 
 
@@ -39,8 +44,9 @@ def _context(state: WorkflowState) -> str:
         exclude={"sources": {"__all__": {"snippet"}}, "findings": {"__all__": {"snippet"}}}) if state.research else {}
     guideline = state.guideline.to_prompt() if state.guideline else f"(no guideline; topic: {state.query})"
     profiles = writing_context()
+    focus = ", ".join(state.research.focus) if state.research and state.research.focus else "(none named)"
     return (
-        f"Query: {state.query}\n\nGuideline:\n{guideline}"
+        f"Query: {state.query}\nFocus: {focus}\n\nGuideline:\n{guideline}"
         + (f"\n\nWriting profiles and examples:\n{profiles}" if profiles else "")
         + f"\n\nFindings (JSON):\n{json.dumps(findings, indent=2)}"
     )

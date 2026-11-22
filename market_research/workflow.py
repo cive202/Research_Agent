@@ -36,6 +36,7 @@ class GraphState(TypedDict):
     evaluate_rag: bool
     ragas: bool
     force_revision: bool
+    gap_rounds: Optional[int]
 
 
 def _detail(node: str, s: WorkflowState) -> str:
@@ -70,7 +71,10 @@ def build_graph(on_step: Optional[StepCallback] = None):
             step(s, f"Researcher: using existing research ({len(s.research.findings)} findings).")
             return {"state": s}
         step(s, "Researcher: gathering information" + (" (sample data)..." if g["use_sample"] else " (web search)..."))
-        s.research = researcher(s, g["use_sample"])
+        s.research = researcher(s, g["use_sample"], g["gap_rounds"])
+        if s.research.focus:
+            step(s, "Researcher: focus " + ", ".join(s.research.focus) + "; "
+                    f"{sum(not x.on_focus for x in s.research.sources)} background source(s).")
         for n, qs in enumerate(s.research.gap_rounds, 1):
             step(s, f"Researcher: gap round {n}, searched: " + "; ".join(qs))
         step(s, f"Researcher: {len(s.research.findings)} findings from {len(s.research.sources)} sources, "
@@ -203,8 +207,12 @@ def orchestrator(
     iterations: int = config.REVIEW_ITERATIONS,
     research: Optional[Research] = None,
     raise_errors: bool = True,
+    max_gap_rounds: Optional[int] = None,
 ) -> WorkflowState:
-    """Run the workflow on a short query, or on a guideline (its topic then replaces the query)."""
+    """Run the workflow on a short query, or on a guideline (its topic then replaces the query).
+
+    `max_gap_rounds` overrides config.MAX_GAP_ROUNDS for this run (0 turns gap-filling search off).
+    """
     query = (guideline.topic if guideline else query).strip()
     if not query:
         raise ValueError("Please enter a company or industry.")
@@ -220,7 +228,7 @@ def orchestrator(
     try:
         result = build_graph(on_step).invoke({
             "state": state, "use_sample": use_sample, "evaluate_rag": evaluate_rag,
-            "ragas": ragas and evaluate_rag, "force_revision": force_revision,
+            "ragas": ragas and evaluate_rag, "force_revision": force_revision, "gap_rounds": max_gap_rounds,
         })
         state = result["state"]
     except Exception as e:

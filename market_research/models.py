@@ -12,6 +12,7 @@ class Source(BaseModel):
     title: str
     url: str = ""
     snippet: str = Field(default="", description="Retrieved text (used by the evaluator).")
+    on_focus: bool = Field(default=True, description="Set by code: False if it does not mention the focus.")
 
 
 MAX_COMPETITORS = 2
@@ -27,6 +28,7 @@ class FindingDraft(BaseModel):
 class Finding(FindingDraft):
     id: str = Field(default="", description="F1, F2, ... assigned by code after extraction.")
     snippet: str = Field(default="", description="Short excerpt of the source text, set by code.")
+    on_focus: bool = Field(default=True, description="Set by code. False = BACKGROUND: does not mention the focus.")
 
 
 class ResearchResult(BaseModel):
@@ -43,6 +45,7 @@ class Research(ResearchResult):
     findings: list[Finding] = Field(default_factory=list, description="Numbered findings F1, F2, ...")
     mode: Literal["web", "sample"] = "web"
     provider: str = Field(default="", description="Search provider used: tavily, duckduckgo or sample.")
+    focus: list[str] = Field(default_factory=list, description="Place(s) or company the research is about.")
     sources: list[Source] = Field(default_factory=list, description="Retrieved documents.")
     queries: list[str] = Field(default_factory=list, description="Search queries run (initial plan).")
     gap_rounds: list[list[str]] = Field(
@@ -145,7 +148,7 @@ class StepMetric(BaseModel):
 
 
 GroundingCode = Literal["uncited_observation", "unknown_citation", "too_many_competitors",
-                        "unsupported_competitor", "unknown_source"]
+                        "unsupported_competitor", "background_competitor", "unknown_source"]
 
 
 class GroundingFlag(BaseModel):

@@ -33,7 +33,8 @@ def _docs(sources: list[Source]) -> str:
 
 
 def _judge(schema, system: str, user: str):
-    return ask_json(schema, system, user, model=config.judge_model_name(), temperature=0.0)
+    return ask_json(schema, system + " " + config.UNTRUSTED_NOTE, user, model=config.judge_model_name(),
+                    temperature=0.0)
 
 
 def retrieval_relevance(state: WorkflowState) -> MetricResult:

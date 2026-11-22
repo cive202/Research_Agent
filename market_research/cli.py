@@ -18,7 +18,7 @@ def cmd_run(args: argparse.Namespace) -> None:
     result = orchestrator(args.query or "", use_sample=args.sample, on_step=print,
                           evaluate_rag=not args.no_eval, force_revision=args.force_revision, ragas=args.ragas,
                           save_dir=None if args.no_save else config.RUNS_DIR, guideline=guideline,
-                          iterations=args.iterations)
+                          iterations=args.iterations, max_gap_rounds=args.gap_rounds)
     md = brief_to_markdown(result)
     if args.out:
         with open(args.out, "w", encoding="utf-8") as f:
@@ -71,6 +71,8 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--no-eval", action="store_true", help="skip the RAG evaluation")
     r.add_argument("--force-revision", action="store_true", help="force the critic to request a revision (test)")
     r.add_argument("--ragas", action="store_true", help="also compute RAGAS metrics (extra LLM calls)")
+    r.add_argument("--gap-rounds", type=int, choices=range(0, 4), metavar="0-3",
+                   help=f"extra search rounds that target data gaps (default {config.MAX_GAP_ROUNDS}, 0 = off)")
     r.add_argument("--no-save", action="store_true", help=f"do not write run files to {config.RUNS_DIR}/")
     r.add_argument("--out", help="write the brief to this markdown file")
     r.set_defaults(func=cmd_run)
