@@ -1,8 +1,9 @@
 # Multi-Agent Market Research App
 
 ## Demo video
-
 https://github.com/user-attachments/assets/b8599bad-5ac9-48b3-972e-bc29c1d51bb7
+
+If the player does not load, open the recording directly: **[docs-screenshots/recording.mp4](docs-screenshots/recording.mp4)**
 
 **Live demo:** https://researchagent-123.streamlit.app/ (click an example button; the first load after idle can take about 30 seconds).
 
@@ -228,17 +229,50 @@ Sidebar options: sample data, run RAG evaluation, also compute RAGAS metrics, an
 
 ### Screenshots
 
-| Orchestrator asks which place is meant | Ambiguous name ("Mercury") |
-|---|---|
-| ![Hyderabad: India or Pakistan?](docs-screenshots/hydrabad.png) | ![Mercury: planet, element, car brand or company?](docs-screenshots/mercury_error.png) |
+All screenshots are from real runs of the app (dark theme, Tavily search, Groq).
 
-| "Bharatpur": Nepal or India? | Critic found an unsupported claim, Analyst revises once |
-|---|---|
-| ![Bharatpur clarification](docs-screenshots/needs_clarification.png) | ![Revising an unsupported claim](docs-screenshots/revising_unsupported_claim.png) |
+#### 1. Ambiguous city: "Analyze the coffee market in Hyderabad"
 
-**The evaluator says so when the RAG check fails** instead of hiding it:
+Hyderabad exists in India and in Pakistan. The Orchestrator stops after 1 second, before any search is done, and asks
+one question that names both options. The Researcher, Analyst, Critic and Evaluator cards stay on *waiting*, so no
+tokens or search credits are spent on the wrong market.
 
-![RAG check: Not working](docs-screenshots/error_Rag_not_working.png)
+![Orchestrator asks: Hyderabad, India or Hyderabad, Pakistan?](docs-screenshots/hydrabad.png)
+
+#### 2. Ambiguous name: "Analyze Mercury"
+
+"Mercury" could be the planet, the element, the car brand or a company. The intake check asks which one is meant
+instead of guessing.
+
+![Orchestrator asks which Mercury is meant](docs-screenshots/mercury_error.png)
+
+#### 3. Small local business: "Research a small bakery in bharatpur"
+
+Bharatpur is a city in Nepal and in India. Even for a lowercase, very local query, the app asks
+*"Do you mean Bharatpur, Nepal or Bharatpur, India?"*. Adding the country to the query skips the question.
+
+![Orchestrator asks: Bharatpur, Nepal or Bharatpur, India?](docs-screenshots/needs_clarification.png)
+
+#### 4. The Critic catches an unsupported claim and the Analyst revises once
+
+Query: *"Analyze the food delivery market in Pokhara"*. The activity log shows the Researcher's two gap-filling rounds
+(searching for market revenue and growth), then *"8 findings from 10 sources, 2 gaps left"*. The Analyst writes draft
+v0, the Critic reviews it in a fresh context and reports **1 issue (research/unsupported_claim)**, and the Analyst
+revises: *"applying 1 issues -> v1 (round 1 of max 1)"*. The Analyst card shows `×2` because it ran twice. The
+revision limit of one is enforced in code.
+
+![Critic flags an unsupported claim; Analyst revises to v1](docs-screenshots/revising_unsupported_claim.png)
+
+#### 5. The evaluator reports a failing RAG check instead of hiding it
+
+The same Pokhara query, finished in about 5 minutes: 8 findings, 12 sources, Critic = *revised*, and **RAG check: Not
+Working**. The pipeline itself completed normally (all cards green), but the evaluator judged that at least one
+required check failed and says so on the main page. The **Quality** tab lists which metric failed and why. Quality
+problems are shown, not hidden behind a finished-looking brief.
+
+![Run completed, RAG check shows Not Working](docs-screenshots/error_Rag_not_working.png)
+
+#### 6. A full exported brief
 
 A full exported brief, with evidence, grounding check, Critic verdict and evaluation table, is in
 [`docs-screenshots/research_brief.md`](docs-screenshots/research_brief.md).
@@ -376,9 +410,15 @@ Markdown export say *"changes requested, but the revision failed (...); this is 
 **Problem.** "Coffee market in Hyderabad" mixed Indian and Pakistani sources. "Bharatpur" exists in Nepal and India.
 "Analyze Mercury" could mean the planet, the element, the car brand or a company.
 
-**Fix.** The Orchestrator's intake check asks **one** short question that names the options (see the screenshots).
+**Fix.** The Orchestrator's intake check asks **one** short question that names the options.
 If a country or other detail is already in the query, it does not ask. The planner also always puts the country into
 the search queries (`intake.py`, `retrieval.py`).
+
+| "coffee market in Hyderabad" | "Analyze Mercury" | "small bakery in bharatpur" |
+|---|---|---|
+| ![Hyderabad clarification](docs-screenshots/hydrabad.png) | ![Mercury clarification](docs-screenshots/mercury_error.png) | ![Bharatpur clarification](docs-screenshots/needs_clarification.png) |
+
+In every case the run stops at the Orchestrator in about 1 second, before any search or writing.
 
 ### 6.5 The brief drifted to other countries and global reports
 
@@ -402,6 +442,10 @@ general context, and a competitor backed only by background findings is a ground
 **Fix.** The grounding flags are facts computed in code, so if the Critic approves while flags remain, the approval is
 **overruled in code** and the flags become issues for the revision (`agents/critic.py`). Critic issues are sorted by
 priority, so the revision fixes the most important ones first.
+
+In the run below, the Critic found one `research/unsupported_claim` in draft v0, and the Analyst revised once to v1:
+
+![Critic flags an unsupported claim; Analyst revises once](docs-screenshots/revising_unsupported_claim.png)
 
 ### 6.8 Mangled or invented URLs
 
@@ -507,6 +551,11 @@ otherwise                  -> RAG NOT WORKING  + the list of failed checks
 In the UI, the **RAG check** tile shows `Pass`, `Fail` or `Not active`. On a fail, the failed checks are printed under
 the metrics, and the **Quality** tab shows the full table with reasons. The same table goes into the Markdown export
 and `state.json`.
+
+Example of a run that completed but **failed** the RAG check. The tile says *Not Working* instead of hiding the
+failure behind a finished-looking brief:
+
+![RAG check: Not Working on a completed run](docs-screenshots/error_Rag_not_working.png)
 
 ### 7.4 Making the judges trustworthy
 
