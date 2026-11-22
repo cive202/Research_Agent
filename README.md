@@ -1,7 +1,8 @@
 # Multi-Agent Market Research App
 
 ## Demo video
-[▶ Watch Full Demo Video](docs-screenshots/recording.mp4)If the player does not load, open the recording directly: **[docs-screenshots/recording.mp4](docs-screenshots/recording.mp4)**
+
+https://github.com/user-attachments/assets/b8599bad-5ac9-48b3-972e-bc29c1d51bb7
 
 **Live demo:** https://researchagent-123.streamlit.app/ (click an example button; the first load after idle can take about 30 seconds).
 
