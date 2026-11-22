@@ -103,7 +103,9 @@ def test_step_metrics_and_run_artifacts(monkeypatch, tmp_path):
     from pathlib import Path
     run = Path(st.run_dir)
     assert run.parent == tmp_path and "nepal-food-delivery" in run.name
-    assert {p.name for p in run.iterdir()} == {"research.md", "draft_v0.md", "reviews.md", "final.md", "state.json"}
+    files = {p.name for p in run.iterdir()} - {"final.pdf"}  # final.pdf only when reportlab is installed
+    assert files == {"research.md", "draft_v0.md", "reviews.md", "final.md", "state.json"}
+    assert (tmp_path / "benchmarks.jsonl").exists()
     assert json.loads((run / "state.json").read_text())["query"] == "Nepal food delivery!"
     assert "## Findings" in (run / "research.md").read_text()
 

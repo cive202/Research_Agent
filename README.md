@@ -21,7 +21,7 @@ limit is enforced in code. Finally, an evaluator scores both retrieval and gener
 `RAG WORKING`, `RAG NOT WORKING` or `RAG NOT ACTIVE`.
 
 **Stack:** Python 3.10+, Streamlit, LangGraph, LangChain + Groq (`openai/gpt-oss-120b`), Tavily / DuckDuckGo search,
-Pydantic v2, FastMCP, pytest, ruff, Docker, GitHub Actions.
+Pydantic v2, ReportLab (PDF export), FastMCP, pytest, ruff, Docker, GitHub Actions.
 
 ---
 
@@ -87,6 +87,7 @@ Set at least:
 
 ```ini
 GROQ_API_KEY=gsk_...               # required: https://console.groq.com/keys (free tier)
+GROQ_API_KEY_1=gsk_...             # optional spare keys (_2, _3, ...): used in turn when one hits its rate limit
 TAVILY_API_KEY=tvly-...            # optional: https://app.tavily.com (better search; without it DuckDuckGo is used)
 ```
 
@@ -101,7 +102,7 @@ Open http://localhost:8501 and click **Analyze the food delivery market in Nepal
 ### 1.5 Check that everything is installed correctly (optional, no keys needed)
 
 ```bash
-pytest -q        # 73 passed, 1 skipped: LLM and search are mocked
+pytest -q        # 84 passed, 5 skipped (88 / 1 with reportlab installed): LLM and search are mocked
 ruff check .
 ```
 
@@ -220,7 +221,7 @@ anyone with the URL can spend your LLM quota.
 
 | Tab | What it shows |
 |---|---|
-| **Brief** | Summary, up to two competitors, key observations (each ends in a citation such as `[F2 · statista.com]` that links to the source), sources, missing information. Download as **Markdown** or **JSON**. |
+| **Brief** | Summary, up to two competitors, key observations (each ends in a citation such as `[F2 · statista.com]` that links to the source), sources, missing information. Download as **Markdown**, **PDF** (A4, with clickable citations) or **JSON**. |
 | **Evidence** | The numbered findings `F1..Fn` with source links and snippets. The brief may only cite these. |
 | **Agent trace** | Per-role status and time, the structured data handed between roles, the Critic's issues, whether a revision happened, and the grounding flags. |
 | **Quality** | The RAG evaluation scorecard with a reason for each metric, plus token use and run time. |
@@ -304,16 +305,20 @@ Because IDs are given by code and not by the model, any citation can be checked 
    `www.`, query string or trailing slash).
 4. **Filter and rank.** An LLM keeps only relevant documents (it re-searches once if fewer than 60% or 4 survive).
    Code puts on-focus sources first and keeps at most 3 background sources, labelled as background.
-5. **Extract.** The Researcher writes findings and data gaps. Code removes repeated claims, caps them at 10, numbers
+5. **Extract.** The Researcher writes findings and data gaps, keeping the year or period of each figure and the
+   source's own wording ("estimated", "forecast"). Code removes repeated claims, caps them at 10, numbers
    them and attaches a source snippet. URLs the model slightly mis-copied are snapped back to the retrieved URL.
 6. **Fill gaps.** Up to `MAX_GAP_ROUNDS` (default 2) extra searches target the data gaps, then the Researcher
    re-extracts from at most 12 sources.
-7. **Draft v0.** The Analyst writes the brief with `[F#]` citations. Code caps competitors at 2, rebuilds the
+7. **Draft v0.** The Analyst writes the brief with `[F#]` citations. It keeps observed facts apart from estimates and
+   forecasts, and lists guideline questions the findings cannot answer as "Could not be verified: ...". Code caps competitors at 2, rebuilds the
    sources list and adds honest-gap notes ("Evidence is thin", "No market size... figures were found").
-8. **Review.** Grounding check, then the Critic. Approved → done. Otherwise exactly one revision (v1). If the
+8. **Review.** Grounding check, then the Critic (which also flags an estimate stated as fact, a dropped year, or an
+   unanswered guideline question). Approved → done. Otherwise exactly one revision (v1). If the
    revision call fails, v0 is kept and the reason is shown, so the run is not lost.
 9. **Evaluate and save.** The evaluator scores the run. Everything is saved to
-   `runs/<time>-<query>/` (`research.md`, `draft_v0.md`, `draft_v1.md`, `reviews.md`, `final.md`, `state.json`).
+   `runs/<time>-<query>/` (`research.md`, `draft_v0.md`, `draft_v1.md`, `reviews.md`, `final.md`, `final.pdf`,
+   `state.json`), and one summary line is added to `runs/benchmarks.jsonl`.
 
 ### 5.5 Design principles
 
@@ -606,8 +611,16 @@ Aim for at least 20-30 labelled runs before trusting the score: with five rows p
 ### 7.8 Observability
 
 Every run saves `runs/<time>-<query>/state.json` with the full shared state, the evaluation report, and per-step
-seconds and LLM tokens, along with `research.md`, `draft_v0.md`, `draft_v1.md`, `reviews.md` and `final.md`. These
-run folders are what you label in 7.7. With `pip install opik` and `OPIK_API_KEY` (or `OPIK_URL_OVERRIDE`), every
+seconds and LLM tokens, along with `research.md`, `draft_v0.md`, `draft_v1.md`, `reviews.md` and `final.md`
+(plus `final.pdf`, an A4 PDF of the same brief, when `reportlab` is installed). These run folders are what you
+label in 7.7.
+
+Across runs, `runs/benchmarks.jsonl` gets one JSON line per run, failed runs included: query, status and error,
+total seconds, model, data mode, findings, versions, Critic approval, verdict, grounding flags, total LLM calls and
+tokens, and the per-step metrics in the order the steps ran. Read it with
+`market_research.benchmarks.load_benchmarks()`, or e.g. `jq -s 'map({query, status, total_seconds})' runs/benchmarks.jsonl`.
+
+With `pip install opik` and `OPIK_API_KEY` (or `OPIK_URL_OVERRIDE`), every
 workflow step, LLM call and MCP tool call is also traced as a span with inputs, outputs and latency.
 
 ### 7.9 What the evaluation does not prove
@@ -624,7 +637,7 @@ workflow step, LLM call and MCP tool call is also traced as a span with inputs, 
 ## 8. Tests, lint and CI
 
 ```bash
-pytest -q          # 73 passed, 1 skipped; no API keys needed, LLM and search are mocked
+pytest -q          # 84 passed, 5 skipped (88 / 1 with reportlab installed); no API keys needed
 ruff check .
 ```
 
@@ -635,6 +648,7 @@ ruff check .
 | `test_metrics.py` | URL normalisation and snapping, retrieval / citation / structure rules |
 | `test_improvements.py` | Tamper test is caught, sample mode = `RAG NOT ACTIVE`, forced revision, relevance filter, RAGAS optional and non-blocking |
 | `test_workshop_features.py` | Gap rounds, prioritised Critic issues, style check, run artifacts, guidelines, profiles, MCP tools, judge calibration |
+| `test_reference_features.py` | Evidence rules in the Researcher / Analyst / Critic prompts, `runs/benchmarks.jsonl` (success, failed run, broken line, unwritable folder), PDF export (A4 pages, "Page X of Y" on every page, tables, numbered lists, unicode punctuation, empty brief; skipped without `reportlab`) |
 | `test_progress.py` | Live pipeline progress rendering |
 | `test_app_smoke.py` | Headless run of the real Streamlit app |
 
@@ -699,6 +713,7 @@ comes from `profiles/character.md`, `structure.md`, `terminology.md` and one exa
 | "The LLM rejected the API key" | Wrong or expired key | Create a new key at console.groq.com |
 | "The LLM rate limit was hit" | Groq free-tier limit (on every key) | Wait a minute, add `GROQ_API_KEY_1`, `_2`, ..., lower gap rounds, or untick **Run RAG evaluation** |
 | "The request was too large..." | Prompt + answer above `GROQ_TPM_LIMIT` | Lower gap rounds, retry in a minute, or raise `GROQ_TPM_LIMIT` if your plan allows |
+| "PDF export needs `pip install reportlab`" | `reportlab` is not installed in your environment | `pip install -r requirements.txt` (or `pip install reportlab`), restart Streamlit |
 | "Could not reach the LLM service" | No internet, VPN or firewall | Check the connection and retry |
 | Yellow "Sample data mode" banner | Checkbox, `USE_SAMPLE_DATA=1`, or no search provider worked | Untick it; check internet and keys |
 | "Evidence is thin" / few results | Search returned little (DuckDuckGo is weaker) | Add `TAVILY_API_KEY`, or name the company and country |
@@ -719,6 +734,8 @@ comes from `profiles/character.md`, `structure.md`, `terminology.md` and one exa
 - Duplicate removal catches identical claims (ignoring case and punctuation), not paraphrases of the same fact; the
   prompt asks the model to merge those.
 - Groq's free tier is rate limited, and DuckDuckGo may throttle automated queries.
+- The PDF uses the built-in PDF fonts, so characters outside basic Western European text (for example Devanagari)
+  print as `?`. The Markdown and JSON downloads are unaffected.
 - Results depend on what search returns at that moment, so reruns can differ.
 - This is retrieval-augmented generation over live web search; there is no vector database.
 
@@ -744,6 +761,8 @@ market_research/
   llm.py                       Groq wrapper: token budget, JSON retry, friendly errors
   models.py                    Pydantic models shared by all roles
   rendering.py                 Markdown / JSON export with linked citations
+  pdf.py                       A4 PDF export (ReportLab), built from the same Markdown
+  benchmarks.py                Cross-run log: one line per run in runs/benchmarks.jsonl
   progress.py                  Live agent-pipeline cards
   evaluation/                  rules, judges, verdict, tamper test, batch eval, calibration, RAGAS
   config.py                    Env lookups, limits, thresholds
@@ -759,8 +778,3 @@ Dockerfile docker-compose.yml Makefile .devcontainer/
 
 ---
 
-## 14. Credits
-
-Structure and ideas were informed by open-source market-research agent projects (MIT licensed), including
-Market-Intelligence-Agent and Market-Research-Agent. The focus/background ranking and the ambiguity question were
-inspired by ai-research-assistant by Royas Shakya (MIT). No code was copied from them.

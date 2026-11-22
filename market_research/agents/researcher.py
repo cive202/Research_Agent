@@ -21,7 +21,7 @@ SYSTEM = (
     "(market size, growth, competitors, dates), list it in data_gaps instead of guessing. "
     "Only list a gap if the documents truly do not answer it. List each fact once: if several documents say "
     "the same thing, write one finding and cite the most authoritative of them. Documents marked BACKGROUND do not mention "
-    "the focus: use them only for general context. " + config.UNTRUSTED_NOTE
+    "the focus: use them only for general context. " + config.EVIDENCE_RULE_RESEARCH + config.UNTRUSTED_NOTE
 )
 
 

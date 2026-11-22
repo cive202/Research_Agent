@@ -24,6 +24,7 @@ SYSTEM = (
     "market share or revenue figures when no finding has them). Return competitors_dropped as 0. "
     "If there are only a few findings, say in the summary that the evidence is thin. "
     "Never invent numbers or facts. If the findings are labelled SAMPLE, say so in the summary. "
+    + config.EVIDENCE_RULE_WRITE +
     "If a guideline is given, answer its angle for its audience and cover its key questions and "
     "must-include items where the findings allow; its constraints override the profiles. "
     "Follow the writing profiles. Example briefs show the style only: never copy their facts. "

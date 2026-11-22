@@ -10,12 +10,14 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
+from datetime import UTC, datetime
 from typing import Optional, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
 from . import config
 from .agents import analyst, critic, researcher
+from .benchmarks import record_run
 from .grounding import check_grounding
 from .guideline import Guideline
 from .intake import check_query
@@ -237,6 +239,7 @@ def orchestrator(
         check_query(query)  # ValueError with a clarifying question for gibberish or too-vague input
     state = WorkflowState(query=query, guideline=guideline, max_iterations=iterations, research=research)
     state.trace.append(TraceStep(role="Orchestrator", detail="query received, workflow started"))
+    started_at, t0 = datetime.now(UTC), time.perf_counter()
     try:
         result = build_graph(on_step).invoke({
             "state": state, "use_sample": use_sample, "evaluate_rag": evaluate_rag,
@@ -246,6 +249,8 @@ def orchestrator(
     except Exception as e:
         # The nodes mutate `state` in place, so everything produced before the failure is kept.
         state.error = str(e) if isinstance(e, (LLMError, SearchUnavailable)) else explain_error(e)
+        if save_dir:  # failed runs are benchmarked too
+            record_run(state, started_at, time.perf_counter() - t0, save_dir)
         if raise_errors:
             raise
         return state
@@ -253,6 +258,7 @@ def orchestrator(
         from .artifacts import save_run
 
         save_run(state, save_dir)
+        record_run(state, started_at, time.perf_counter() - t0, save_dir)
         if on_step:
             on_step(f"Orchestrator: run files saved to {state.run_dir}")
     return state

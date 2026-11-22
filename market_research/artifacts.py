@@ -6,6 +6,7 @@ runs/<timestamp>-<slug>/
   draft_v0.md   the Analyst's first draft; draft_v1.md ... one per review round
   reviews.md    every Critic review, round by round
   final.md      the final brief (the last version) plus evaluation
+  final.pdf     the same as an A4 PDF (only when reportlab is installed)
   state.json    the full shared state, including all reviews and per-step metrics
 """
 from __future__ import annotations
@@ -61,6 +62,10 @@ def save_run(state: WorkflowState, base_dir: str, exact: bool = False) -> str:
         (path / "reviews.md").write_text(reviews_to_markdown(state.critiques), encoding="utf-8")
     if state.final:
         (path / "final.md").write_text(brief_to_markdown(state), encoding="utf-8")
+        from .pdf import brief_to_pdf, pdf_available
+
+        if pdf_available():
+            (path / "final.pdf").write_bytes(brief_to_pdf(state))
     state.run_dir = str(path)
     (path / "state.json").write_text(state.model_dump_json(indent=2), encoding="utf-8")
     return str(path)

@@ -232,10 +232,17 @@ def render_quality(state: WorkflowState) -> None:
 
 
 def render_downloads(state: WorkflowState) -> None:
-    c1, c2 = st.columns(2)
+    from market_research.pdf import brief_to_pdf, pdf_available
+
+    c1, c2, c3 = st.columns(3)
     c1.download_button("Download brief (Markdown)", brief_to_markdown(state),
                        file_name="research_brief.md", mime="text/markdown")
-    c2.download_button("Download run (JSON)", state_to_json(state),
+    if pdf_available():
+        c2.download_button("Download brief (PDF)", brief_to_pdf(state),
+                           file_name="research_brief.pdf", mime="application/pdf")
+    else:
+        c2.caption("PDF export needs `pip install reportlab`.")
+    c3.download_button("Download run (JSON)", state_to_json(state),
                        file_name="research_run.json", mime="application/json")
 
 

@@ -32,6 +32,7 @@ SYSTEM = (
     + ". FOCUS: the brief must be about the focus given in the prompt, not the world in general: at most "
     "one observation may rest on BACKGROUND findings (on_focus=false), worded as general context, and no "
     "competitor may rest on background findings alone (rule='research'). "
+    + config.EVIDENCE_RULE_REVIEW +
     "When not approved, also fill revision_instructions with a one-paragraph summary. " + config.UNTRUSTED_NOTE
 )
 
