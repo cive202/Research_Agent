@@ -6,6 +6,8 @@ structured Pydantic data to each other, and the brief may only use numbered find
 web search or from clearly labelled sample data. A plain-Python grounding check flags any claim without evidence, and
 the Critic may request **at most one revision**.
 
+**Live demo:** https://researchagent-123.streamlit.app/ (click an example button; the first load after idle can take about 30 seconds).
+
 ## Quick start (about 5 minutes)
 
 ```bash
