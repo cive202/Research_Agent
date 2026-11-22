@@ -7,7 +7,14 @@ from market_research import config, orchestrator
 from market_research.guideline import parse_guideline
 from market_research.llm import LLMError, explain_error
 from market_research.models import EvaluationReport, WorkflowState
-from market_research.rendering import SAMPLE_WARNING, brief_to_markdown, state_to_json
+from market_research.rendering import (
+    SAMPLE_WARNING,
+    brief_to_markdown,
+    link_citations,
+    source_citations,
+    state_to_json,
+)
+from market_research.urls import normalize_url
 
 EXAMPLES = [
     "Analyze the food delivery market in Nepal",
@@ -99,21 +106,25 @@ def render_brief(state: WorkflowState) -> None:
     brief = state.final
     st.subheader(f"Brief: {state.query}")
     st.markdown("**Summary**")
-    st.write(brief.summary)
+    r = state.research
+    st.markdown(link_citations(brief.summary, r))
 
     if brief.competitors:
         st.markdown("**Competitors** (at most two)")
         for c in brief.competitors:
-            st.markdown(f"- **{c.name}**: {c.note}")
+            st.markdown(f"- **{c.name}**: {link_citations(c.note, r)}")
 
     st.markdown("**Key observations**")
     for o in brief.key_observations:
-        st.markdown(f"- {o}")
+        st.markdown(f"- {link_citations(o, r)}")
 
     st.markdown("**Sources**")
     if brief.sources:
+        cites = source_citations(brief, r)
         for s in brief.sources:
-            st.markdown(f"- [{s.title}]({s.url})" if s.url else f"- {s.title}")
+            ids = cites.get(normalize_url(s.url), [])
+            tag = f" (cited as {', '.join(ids)})" if ids else ""
+            st.markdown(f"- [{s.title}]({s.url}){tag}" if s.url else f"- {s.title}")
     else:
         st.markdown("- None")
 

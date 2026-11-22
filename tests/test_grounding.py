@@ -281,3 +281,18 @@ def test_intake_declines_with_a_clarifying_question_and_fails_open(monkeypatch):
 
     monkeypatch.setattr(intake, "ask_json", down)
     assert workflow.orchestrator("food delivery in Nepal").final  # fails open
+
+
+def test_citations_render_as_source_links_without_changing_the_stored_text():
+    from market_research.rendering import link_citations, source_citations
+
+    r = research(3)
+    b = brief(key_observations=["a [F1][F2]", "b [F3]", "c [F9]"])
+    out = link_citations(b.key_observations[0], r)
+    assert "(https://s1.com/p)" in out and "(https://s2.com/p)" in out and "F1 · s1.com" in out
+    assert link_citations("x [F9]", r) == "x [F9]"  # unknown ID stays plain
+    assert b.key_observations[0] == "a [F1][F2]"  # stored text keeps plain [F#]
+    sample = research(1, mode="sample")
+    sample.findings[0].source_url = ""
+    assert link_citations("x [F1]", sample) == "x [F1]"  # sample data has no URL to link
+    assert source_citations(b, r)["s1.com/p"] == ["F1"]
