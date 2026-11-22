@@ -296,3 +296,97 @@ def test_citations_render_as_source_links_without_changing_the_stored_text():
     sample.findings[0].source_url = ""
     assert link_citations("x [F1]", sample) == "x [F1]"  # sample data has no URL to link
     assert source_citations(b, r)["s1.com/p"] == ["F1"]
+
+
+def test_groq_api_keys_merges_and_dedupes(monkeypatch):
+    from market_research import config
+
+    monkeypatch.setenv("GROQ_API_KEY", "k1")
+    monkeypatch.setenv("GROQ_API_KEY_10", "k4")
+    monkeypatch.setenv("GROQ_API_KEY_2", " k3 ")
+    monkeypatch.setenv("GROQ_API_KEY_1", "k2")
+    monkeypatch.setenv("GROQ_API_KEY_3", "k1")
+    monkeypatch.setenv("GROQ_API_KEY_4", "your-placeholder")
+    monkeypatch.setenv("GROQ_API_KEY_5", "")
+    assert config.groq_api_keys() == ["k1", "k2", "k3", "k4"]
+    assert config.groq_api_key() == "k1"
+
+
+def _key_recording_model(monkeypatch, fail_keys, status=429):
+    from langchain_core.runnables import RunnableLambda
+
+    from market_research import llm
+
+    class Limited(Exception):
+        status_code = status
+
+    used = []
+
+    def fake_chat_model(*a, **k):
+        key = llm.current_key()
+
+        def run(_prompt_value):
+            used.append(key)
+            if key in fail_keys:
+                raise Limited(f"Error code: {status}")
+            return {"x": 1}
+
+        class Model:
+            def with_structured_output(self, *a, **k):
+                return RunnableLambda(run)
+        return Model()
+
+    monkeypatch.setattr(llm, "chat_model", fake_chat_model)
+    return used
+
+
+def test_rate_limited_key_fails_over_to_next_and_stays(monkeypatch):
+    from pydantic import BaseModel
+
+    from market_research import llm
+
+    class Out(BaseModel):
+        x: int
+
+    monkeypatch.setenv("GROQ_API_KEY", "k1")
+    monkeypatch.setenv("GROQ_API_KEY_1", "k2")
+    monkeypatch.setenv("GROQ_API_KEY_2", "k3")
+    used = _key_recording_model(monkeypatch, {"k1"})
+    assert llm.ask_json(Out, "s", "u").x == 1
+    assert llm.ask_json(Out, "s", "u").x == 1
+    assert used == ["k1", "k2", "k2"]  # the working key is kept for the next call
+
+
+def test_all_keys_exhausted_raises_friendly_error(monkeypatch):
+    import pytest
+    from pydantic import BaseModel
+
+    from market_research import llm
+    from market_research.llm import LLMError
+
+    class Out(BaseModel):
+        x: int
+
+    monkeypatch.setenv("GROQ_API_KEY", "k1")
+    monkeypatch.setenv("GROQ_API_KEY_1", "k2")
+    used = _key_recording_model(monkeypatch, {"k1", "k2"})
+    with pytest.raises(LLMError, match="every Groq key"):
+        llm.ask_json(Out, "s", "u")
+    assert used == ["k1", "k2"]
+
+
+def test_single_key_does_not_retry_on_rate_limit(monkeypatch):
+    import pytest
+    from pydantic import BaseModel
+
+    from market_research import llm
+    from market_research.llm import LLMError
+
+    class Out(BaseModel):
+        x: int
+
+    monkeypatch.setenv("GROQ_API_KEY", "k1")
+    used = _key_recording_model(monkeypatch, {"k1"})
+    with pytest.raises(LLMError):
+        llm.ask_json(Out, "s", "u")
+    assert used == ["k1"]

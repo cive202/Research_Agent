@@ -43,9 +43,10 @@ def explain_error(e: Exception) -> str:
         return ("The request was too large for Groq's per-minute token limit (free tier: 8000 tokens). Retry in a "
                 "minute, lower the gap-filling rounds, or raise GROQ_TPM_LIMIT in .env if your plan allows more.")
     if code == 429 or "ratelimit" in name or "rate limit" in head or "429" in head:
-        return "The LLM rate limit was hit. Wait a minute and try again, or pick a smaller model in .env."
+        return ("The LLM rate limit was hit on every Groq key. Wait a minute and try again, add more keys "
+                "(GROQ_API_KEY_1, GROQ_API_KEY_2, ...) in .env, or pick a smaller model.")
     if code in (401, 403) or "authentication" in name or "permissiondenied" in name or "invalid api key" in head:
-        return "The LLM rejected the API key. Check GROQ_API_KEY in your .env file."
+        return "The LLM rejected the API key. Check GROQ_API_KEY (and any GROQ_API_KEY_1, _2, ...) in your .env file."
     if (isinstance(e, (ConnectionError, TimeoutError)) or "connection" in name or "timeout" in name
             or any(w in head for w in ("connection", "timed out", "network", "unreachable", "resolve"))):
         return "Could not reach the LLM service (network problem or timeout). Check your internet connection and retry."
@@ -75,15 +76,46 @@ def _is_bad_json(e: Exception) -> bool:
     return getattr(e, "status_code", None) == 400 and "json" in str(e)[:300].lower()
 
 
+# Index into config.groq_api_keys() of the key in use. Moves forward when a key is exhausted or rejected,
+# so later calls start with the key that last worked.
+_key_index = 0
+
+
+def _should_rotate(e: Exception) -> bool:
+    """Rate limit (429, includes daily token quota) or a rejected key (401/403): another key may work."""
+    code = getattr(e, "status_code", None)
+    name = type(e).__name__.lower()
+    head = str(e)[:80].lower()
+    return (code in (401, 403, 429) or "ratelimit" in name or "authentication" in name
+            or "permissiondenied" in name or "rate limit" in head or "429" in head or "invalid api key" in head)
+
+
+def _rotate_key() -> bool:
+    """Switch to the next Groq key. False when every key has already been tried from this one."""
+    global _key_index
+    keys = config.groq_api_keys()
+    if len(keys) < 2:
+        return False
+    _key_index = (_key_index + 1) % len(keys)
+    return True
+
+
+def current_key() -> str:
+    keys = config.groq_api_keys()
+    if not keys:
+        raise LLMError("GROQ_API_KEY is not set. Copy .env.example to .env and add your key.")
+    return keys[_key_index % len(keys)]
+
+
 def chat_model(model: Optional[str] = None, temperature: float = 0.3, max_tokens: int = config.LLM_MAX_TOKENS):
-    """LangChain ChatGroq client (also reused by the RAGAS evaluator)."""
+    """LangChain ChatGroq client using the active key (also reused by the RAGAS evaluator)."""
     from langchain_groq import ChatGroq
 
-    key = config.groq_api_key()
-    if not key:
-        raise LLMError("GROQ_API_KEY is not set. Copy .env.example to .env and add your key.")
+    key = current_key()
+    # With spare keys, fail over fast instead of letting the client back off on a rate-limited key.
+    retries = 1 if len(config.groq_api_keys()) > 1 else config.LLM_ATTEMPTS
     return ChatGroq(api_key=key, model=model or config.model_name(), temperature=temperature,
-                    max_tokens=max_tokens, timeout=config.LLM_TIMEOUT, max_retries=config.LLM_ATTEMPTS)
+                    max_tokens=max_tokens, timeout=config.LLM_TIMEOUT, max_retries=retries)
 
 
 @track("llm_call", "llm")
@@ -101,11 +133,17 @@ def ask_json(schema: type[T], system: str, user: str, model: Optional[str] = Non
     )
     prompt = ChatPromptTemplate.from_messages([("system", "{system}"), ("human", "{user}")])
     budget = output_budget(len(system_full) + len(user) + 400)  # +400: room for the retry note
-    chain = prompt | chat_model(model, temperature, max_tokens=budget).with_structured_output(
-        schema, method="json_mode")
+
+    def build_chain():
+        return prompt | chat_model(model, temperature, max_tokens=budget).with_structured_output(
+            schema, method="json_mode")
+
+    chain = build_chain()
+    keys_left = len(config.groq_api_keys()) - 1  # other keys to fail over to
     text = user
     last_err: Exception | None = None
-    for attempt in range(2):
+    attempt = 0
+    while attempt < 2:
         handler = UsageMetadataCallbackHandler()
         try:
             try:
@@ -124,6 +162,12 @@ def ask_json(schema: type[T], system: str, user: str, model: Optional[str] = Non
             if _is_bad_json(e) and attempt == 0:  # same one retry as for invalid JSON
                 last_err = e
                 text = user + "\n\nYour previous answer was not valid JSON for the schema. Return ONLY valid JSON."
+                attempt += 1
                 continue
+            if keys_left > 0 and _should_rotate(e) and _rotate_key():
+                keys_left -= 1
+                chain = build_chain()
+                continue  # same attempt, next key
             raise LLMError(explain_error(e)) from e
+        attempt += 1
     raise LLMError(f"Model did not return valid JSON: {last_err}")

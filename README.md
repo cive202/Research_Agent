@@ -672,6 +672,7 @@ Environment variables (`.env`):
 | Variable | Default | Meaning |
 |---|---|---|
 | `GROQ_API_KEY` | (required) | LLM for all roles |
+| `GROQ_API_KEY_1`, `_2`, ... | empty | Extra Groq keys (e.g. for hosting); on a 429 / 401 / 403 the next key is tried and stays active for later calls |
 | `TAVILY_API_KEY` | empty | Better web search; DuckDuckGo is used without it |
 | `GROQ_MODEL` | `openai/gpt-oss-120b` | Model for the agents |
 | `GROQ_JUDGE_MODEL` | same as `GROQ_MODEL` | Model for the evaluator (use a different one if you can) |
@@ -696,7 +697,7 @@ comes from `profiles/character.md`, `structure.md`, `terminology.md` and one exa
 |---|---|---|
 | "GROQ_API_KEY is not set" | `.env` missing or still has the placeholder | `cp .env.example .env`, add your key, restart Streamlit |
 | "The LLM rejected the API key" | Wrong or expired key | Create a new key at console.groq.com |
-| "The LLM rate limit was hit" | Groq free-tier limit | Wait a minute, lower gap rounds, or untick **Run RAG evaluation** |
+| "The LLM rate limit was hit" | Groq free-tier limit (on every key) | Wait a minute, add `GROQ_API_KEY_1`, `_2`, ..., lower gap rounds, or untick **Run RAG evaluation** |
 | "The request was too large..." | Prompt + answer above `GROQ_TPM_LIMIT` | Lower gap rounds, retry in a minute, or raise `GROQ_TPM_LIMIT` if your plan allows |
 | "Could not reach the LLM service" | No internet, VPN or firewall | Check the connection and retry |
 | Yellow "Sample data mode" banner | Checkbox, `USE_SAMPLE_DATA=1`, or no search provider worked | Untick it; check internet and keys |

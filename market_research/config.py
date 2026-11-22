@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import re
 
 from dotenv import load_dotenv
 
@@ -84,8 +85,25 @@ def _key(name: str) -> str | None:
     return None if not value or value.startswith("your-") else value
 
 
+def groq_api_keys() -> list[str]:
+    """All Groq keys, in order: GROQ_API_KEY, then GROQ_API_KEY_1, GROQ_API_KEY_2, ... (duplicates dropped).
+
+    When one key hits its rate limit or is rejected, the LLM wrapper moves on to the next.
+    """
+    numbered = sorted((int(name.rsplit("_", 1)[1]), value) for name, value in os.environ.items()
+                      if re.fullmatch(r"GROQ_API_KEY_\d+", name))
+    raw = [os.getenv("GROQ_API_KEY", "")] + [value for _, value in numbered]
+    keys: list[str] = []
+    for value in raw:
+        value = value.strip()
+        if value and not value.startswith("your-") and value not in keys:
+            keys.append(value)
+    return keys
+
+
 def groq_api_key() -> str | None:
-    return _key("GROQ_API_KEY")
+    keys = groq_api_keys()
+    return keys[0] if keys else None
 
 
 def tavily_api_key() -> str | None:
