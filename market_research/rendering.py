@@ -1,7 +1,32 @@
 """Markdown rendering of briefs and evaluation reports."""
 from __future__ import annotations
 
+import json
+
 from .models import Brief, EvaluationReport, WorkflowState
+
+SAMPLE_WARNING = ("SAMPLE DATA MODE: the findings are fixed, illustrative sample data, not live research. "
+                  "Do not treat this brief as real market evidence.")
+
+
+def evidence_to_markdown(state: WorkflowState) -> list[str]:
+    """Numbered findings, so every [F#] citation in the brief can be checked."""
+    if not state.research:
+        return []
+    lines = ["## Evidence (findings the brief may cite)"]
+    for f in state.research.findings:
+        src = f"[{f.source_title or f.source_url}]({f.source_url})" if f.source_url else (f.source_title or "no source")
+        lines.append(f"- **{f.id}** {f.claim} ({src})")
+    return lines + [""]
+
+
+def state_to_json(state: WorkflowState) -> str:
+    """Full run as JSON, with an explicit data_mode and warning so sample runs cannot be mistaken for real ones."""
+    sample = bool(state.research and state.research.mode == "sample")
+    payload = {"data_mode": "sample" if sample else "web",
+               "warning": SAMPLE_WARNING if sample else None,
+               "run": state.model_dump(mode="json")}
+    return json.dumps(payload, indent=2, ensure_ascii=False)
 
 
 def evaluation_to_markdown(ev: EvaluationReport) -> str:
@@ -25,11 +50,7 @@ def brief_to_markdown(state: WorkflowState, brief: Brief | None = None) -> str:
         return ""
     lines = [f"# Research brief: {state.query}", ""]
     if state.research and state.research.mode == "sample":
-        lines += [
-            "> **Sample data mode:** findings below are fixed, illustrative sample data, "
-            "not live research.",
-            "",
-        ]
+        lines += [f"> **{SAMPLE_WARNING}**", ""]
     lines += ["## Summary", b.summary, ""]
     if b.competitors:
         lines.append("## Competitors")
@@ -50,6 +71,11 @@ def brief_to_markdown(state: WorkflowState, brief: Brief | None = None) -> str:
     lines.append("")
     if only_brief:
         return "\n".join(lines)
+    lines += evidence_to_markdown(state)
+    final_flags = state.grounding
+    lines += ["## Grounding check"] + (
+        [f"- [{f.code}] {f.section}: {f.message}" for f in final_flags] if final_flags
+        else ["- No grounding flags: every observation and competitor cites an existing finding."]) + [""]
     if state.critique:
         rounds = len(state.critiques) or 1
         if state.critique.approved:

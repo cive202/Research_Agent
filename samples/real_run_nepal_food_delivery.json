@@ -1,0 +1,603 @@
+{
+  "data_mode": "web",
+  "warning": null,
+  "run": {
+    "query": "Analyze the food delivery market in Nepal",
+    "guideline": null,
+    "research": {
+      "findings": [
+        {
+          "claim": "Commission fees charged to restaurants differ by platform, with Foodbusters charging about 14‑15%, Foodmandu about 22%, Bhoj around 20% and Pathao Food roughly 18%",
+          "source_title": "The business of delivering food - The Record",
+          "source_url": "https://www.recordnepal.com/the-business-of-delivering-food",
+          "id": "F1",
+          "snippet": "“The least we pay is to Foodbusters, who charge around 14-15 percent while we pay the most to Foodmandu, who charge about 22 percent. Bhoj charges 20 percent and Pathao Food takes 18 percent,” said Gu"
+        },
+        {
+          "claim": "Restaurants in Nepal usually partner with multiple delivery platforms to maximise order volume and tap into each platform’s loyal customer base",
+          "source_title": "The business of delivering food - The Record",
+          "source_url": "https://www.recordnepal.com/the-business-of-delivering-food",
+          "id": "F2",
+          "snippet": "“The least we pay is to Foodbusters, who charge around 14-15 percent while we pay the most to Foodmandu, who charge about 22 percent. Bhoj charges 20 percent and Pathao Food takes 18 percent,” said Gu"
+        },
+        {
+          "claim": "Foodmandu reports having over 500,000 registered users and supports payment via QR codes, digital wallets, debit/credit cards and cash on delivery",
+          "source_title": "Foodmandu - Apps on Google Play",
+          "source_url": "https://play.google.com/store/apps/details?id=com.app.foodmandu&hl=en_US",
+          "id": "F3",
+          "snippet": "Workshop Eatery, Bricks Café, Burger Shack, Koto, Le Trio, Pho 99, Chatime Nepal, Queens, and many more. 💳 Pay your way via QR codes, wallets, debit/credit cards, or cash on delivery (COD). 🍎🥬Stock up"
+        },
+        {
+          "claim": "Foodmandu secured a Series B funding round to fund expansion into new Nepali cities and into grocery, vegetable and beverage segments; the round involved Team Ventures acquiring a 20% stake, following earlier investment from True North Associates in 2016",
+          "source_title": "Foodtech Startup Foodmandu Raises Series B To Enter New Cities - Team Ventures",
+          "source_url": "https://www.teamventures.com.np/news/business/foodtech-startup-foodmandu-raises-series-b-to-enter-new-cities",
+          "id": "F4",
+          "snippet": "Nepal-based food delivery platform Foodmandu has raised an undisclosed amount in Series B funding round from Nepal-based private investment fund Team Ventures. Prior to this, Foodmandu had got initial"
+        },
+        {
+          "claim": "The COVID‑19 pandemic accelerated the food‑delivery market in Nepal, especially in Kathmandu, as many restaurants began collaborating with delivery services to reach customers",
+          "source_title": "Analysis of Food Delivery during COVID-19 Pandemic at Foodmandu",
+          "source_url": "https://e-research.siam.edu/wp-content/uploads/2021/12/BBA-2020-COOP-Analysis-of-Food-Delivery-during-COVID-19.pdf",
+          "id": "F5",
+          "snippet": "• To provide the choices of variety of restaurants • To establish a social impact by creating employment for both unemployed male and female who are keen to be self-employed • To provide quick deliver"
+        },
+        {
+          "claim": "Mild growth in Nepal’s restaurant‑delivery segment is being driven by rising smartphone penetration, changing consumer lifestyles and a growing preference for convenient meal options",
+          "source_title": "Restaurant Delivery - Nepal | Statista Market Forecast",
+          "source_url": "https://www.statista.com/outlook/emo/online-food-delivery/meal-delivery/restaurant-delivery/nepal",
+          "id": "F6",
+          "snippet": "Out-Of-Scope\n\n- Phone orders\n- Online meal order and delivery both carried out by a platform (e.g. Deliveroo)\n- Deliveries of non-processed or non-prepared food\n\n## Revenue\n\n## Analyst Opinion\n\nThe Re"
+        },
+        {
+          "claim": "Key challenges for Nepali food‑delivery services include delivery inefficiencies and intense competition among platforms",
+          "source_title": "Ecommerce Report | PDF | Restaurants | E Commerce",
+          "source_url": "https://www.scribd.com/document/1035942655/Ecommerce-Report",
+          "id": "F7",
+          "snippet": "The document is a project report on Bhoj Food Delivery Service, detailing its role in Nepal's e-commerce landscape and analyzing its operations, strengths, weaknesses, and challenges. It highlights Bh"
+        },
+        {
+          "claim": "Foodmandu’s market success has spurred the entry of several other food‑delivery startups in Nepal",
+          "source_title": "Foodtech Startup Foodmandu Raises Series B To Enter New Cities - Team Ventures",
+          "source_url": "https://www.teamventures.com.np/news/business/foodtech-startup-foodmandu-raises-series-b-to-enter-new-cities",
+          "id": "F8",
+          "snippet": "Nepal-based food delivery platform Foodmandu has raised an undisclosed amount in Series B funding round from Nepal-based private investment fund Team Ventures. Prior to this, Foodmandu had got initial"
+        }
+      ],
+      "data_gaps": [
+        "Exact current market size (revenue) of Nepal’s online food‑delivery market",
+        "Projected compound annual growth rate (CAGR) for the restaurant‑delivery segment in Nepal",
+        "Market share percentages of the major delivery platforms (Foodmandu, Bhoj, Foodbusters, Pathao Food, etc.)",
+        "Number of active delivery riders operating on each platform",
+        "Detailed breakdown of consumer preferences (e.g., frequency of ordering, preferred cuisine types)",
+        "Regulatory or infrastructure constraints affecting last‑mile delivery in Nepal"
+      ],
+      "mode": "web",
+      "provider": "tavily",
+      "sources": [
+        {
+          "title": "The business of delivering food - The Record",
+          "url": "https://www.recordnepal.com/the-business-of-delivering-food",
+          "snippet": "“The least we pay is to Foodbusters, who charge around 14-15 percent while we pay the most to Foodmandu, who charge about 22 percent. Bhoj charges 20 percent and Pathao Food takes 18 percent,” said Gurung.\n\nLike Gurung, most restaurants usually partner with multiple delivery platforms, which allows them to maximize their delivery numbers.\n\n“We learned that each platform has its own set of loyal customers. We just wanted to tap into all the customer bases that we could,” said Gurung. [...] Companies like Foodmandu work with two active sets of actors: the delivery riders and the actual restauran"
+        },
+        {
+          "title": "Online Food Delivery - Nepal | Statista Market Forecast",
+          "url": "https://www.statista.com/outlook/emo/online-food-delivery/nepal",
+          "snippet": "Definition:\n\nStructure:\n\nAdditional Information:\n\nIn-Scope\n\n- Meals and groceries ordered online that are directly delivered by the restaurant, retailer, or platform no matter if ordered via a platform such as Delivery Hero and Instacart or a restaurant/retailer website such as Domino's and Walmart.com\n- Online meal and grocery order and delivery both carried out by a platform such as Deliveroo, Grab, or Getir\n\nOut-Of-Scope [...] Out-Of-Scope\n\n- Services such as Uber and Lyft, which provide taxi or ride-sharing services primarily focused on transportation\n- E-commerce platforms such as eBay, a"
+        },
+        {
+          "title": "Foodmandu - Apps on Google Play",
+          "url": "https://play.google.com/store/apps/details?id=com.app.foodmandu&hl=en_US",
+          "snippet": "Workshop Eatery, Bricks Café, Burger Shack, Koto, Le Trio, Pho 99, Chatime Nepal, Queens, and many more. 💳 Pay your way via QR codes, wallets, debit/credit cards, or cash on delivery (COD). 🍎🥬Stock up on daily essentials and fresh groceries instantly with Foodmandu OneMart! Currently delivering in selected locations. Don’t worry if we're not in your area yet—we're expanding soon, and your neighborhood will be next! Stay tuned for updates! 🧘♀️ Join 500,000+ happy foodies who trust Foodmandu and [...] arrow\\_forward 🍔🍟🍕🥟 Hungry much? Whether you’re chilling at home, hustling at work, or simply t"
+        },
+        {
+          "title": "Nepali food delivery firm Foodmandu secures series B money",
+          "url": "https://www.techinasia.com/foodmandu-secures-series-b",
+          "snippet": "Manohar Adhikari, Foodmandu’s founder and chief technology officer, said that the new funds will go toward expansion. The company told Tech in Asia that it plans to reach more cities in Nepal and expand further into the vegetables, beverages, and fresh grocery segments.\n\nFoodmandu is TNA’s first investment, according to the statement. TNA is a domestic private equity and venture capital firm that invests in financial services, agriculture, and tech-enabled businesses. [...] # Nepali food delivery startup Foodmandu secures series B money\n\nNepal-based foodtech startup Foodmandu has raised an und"
+        },
+        {
+          "title": "Foodtech Startup Foodmandu Raises Series B To Enter New Cities - Team Ventures",
+          "url": "https://www.teamventures.com.np/news/business/foodtech-startup-foodmandu-raises-series-b-to-enter-new-cities",
+          "snippet": "Nepal-based food delivery platform Foodmandu has raised an undisclosed amount in Series B funding round from Nepal-based private investment fund Team Ventures. Prior to this, Foodmandu had got initial funding by Nepal-based venture capital True North Associates (TNA) in 2016.\n\nAs part of this transaction, Team Ventures will get a 20% stake in Foodmandu through  \na mix of new shares and partial buy-out of TNA’s holding. Notably, Foodmandu was the first investment made by TNA. [...] After the success of Foodmandu, a lot of other startups have also started to tap the food delivery business in Nep"
+        },
+        {
+          "title": "Shark Anand Invested 1 Crore in a Food Delivery Startup! | Shark Tank Nepal Season 01",
+          "url": "https://www.youtube.com/watch?v=o1x-6FOtql0",
+          "snippet": "hunger, we are feeding lifestyle. Hamra vision is to become Nepal's fastest growing food chain and transition into food aggregator and franchise model. Our ask today is one grow for 15% equity in Hangry Zen. So Sharks, are you guys ready to invest in the future of food tech in Nepal and be part of this exciting venture? So I was born in after that further studies we we were classmates we were host mates as well. Um I went to Australia for my undergraduate studies. Um I was there for 10 years [...] As soon as we open more outlets in local areas, we can transition into food aggregator mode as we"
+        },
+        {
+          "title": "Ecommerce Report | PDF | Restaurants | E Commerce",
+          "url": "https://www.scribd.com/document/1035942655/Ecommerce-Report",
+          "snippet": "The document is a project report on Bhoj Food Delivery Service, detailing its role in Nepal's e-commerce landscape and analyzing its operations, strengths, weaknesses, and challenges. It highlights Bhoj's contributions to digital food ordering while identifying issues such as delivery inefficiencies and competition. The report concludes with strategic recommendations for improving service reliability and market positioning.\n\nEcommerce Report"
+        },
+        {
+          "title": "Analysis of Food Delivery during COVID-19 Pandemic at Foodmandu",
+          "url": "https://e-research.siam.edu/wp-content/uploads/2021/12/BBA-2020-COOP-Analysis-of-Food-Delivery-during-COVID-19.pdf",
+          "snippet": "• To provide the choices of variety of restaurants • To establish a social impact by creating employment for both unemployed male and female who are keen to be self-employed • To provide quick delivery services to the customers 1.2 Strategies of the Company Especially after COVID-19 hit Nepal, several of the restaurants have started to collaborate with food delivery services. This has hugely expanded the market of food delivery service in Nepal and specially Kathmandu. Previously there were [...] to make the customer stay with them. They could initiate some offers, some reward programs, to mak"
+        },
+        {
+          "title": "Restaurant Delivery - Nepal | Statista Market Forecast",
+          "url": "https://www.statista.com/outlook/emo/online-food-delivery/meal-delivery/restaurant-delivery/nepal",
+          "snippet": "Out-Of-Scope\n\n- Phone orders\n- Online meal order and delivery both carried out by a platform (e.g. Deliveroo)\n- Deliveries of non-processed or non-prepared food\n\n## Revenue\n\n## Analyst Opinion\n\nThe Restaurant Delivery Market within the Meal Delivery Market in Nepal is experiencing mild growth, influenced by factors such as increased smartphone penetration, changing consumer lifestyles, and the rising preference for convenience in meal options. [...] - Revenue in the Restaurant Delivery market is projected to reach US$\\\\\\\\m in \\\\\\\\.\n- Revenue is expected to show an annual growth rate (CAGR \\\\\\\\"
+        },
+        {
+          "title": "Nepal Online Food Delivery Market (2025-2031) | Growth & Share",
+          "url": "https://www.6wresearch.com/industry-report/nepal-online-food-delivery-market",
+          "snippet": "| 1 Executive Summary |\n| 2 Introduction |\n| 2.1 Key Highlights of the Report |\n| 2.2 Report Description |\n| 2.3 Market Scope & Segmentation |\n| 2.4 Research Methodology |\n| 2.5 Assumptions |\n| 3 Nepal Online Food Delivery Market Overview |\n| 3.1 Nepal Country Macro Economic Indicators |\n| 3.2 Nepal Online Food Delivery Market Revenues & Volume, 2021 & 2031F |\n| 3.3 Nepal Online Food Delivery Market - Industry Life Cycle |\n| 3.4 Nepal Online Food Delivery Market - Porter's Five Forces | [...] Historical Data and Forecast of Nepal Online Food Delivery Market Revenues & Volume By Platform Type f"
+        },
+        {
+          "title": "Nepal Online Food Delivery Services Market (2025-2031) | Outlook & Size",
+          "url": "https://www.6wresearch.com/industry-report/nepal-online-food-delivery-services-market",
+          "snippet": "Historical Data and Forecast of Nepal Online Food Delivery Services Market Revenues & Volume By Online for the Period 2021- 2031\n Nepal Online Food Delivery Services Import Export Trade Statistics\n Market Opportunity Assessment By Type\n Market Opportunity Assessment By Channel Type\n Market Opportunity Assessment By Payment Method\n Nepal Online Food Delivery Services Top Companies Market Share\n Nepal Online Food Delivery Services Competitive Benchmarking By Technical and Operational Parameters [...] Historical Data and Forecast of Nepal Online Food Delivery Services Market Revenues & Volume By "
+        },
+        {
+          "title": "Nepal Food Delivery Logistics Market Forecast 2032",
+          "url": "https://www.6wresearch.com/industry-report/nepal-food-delivery-logistics-market",
+          "snippet": "- Historical Data and Forecast of Nepal Food Delivery Logistics Market Revenues & Volume By Subscription-Based for the Period 2022-2032\n- Historical Data and Forecast of Nepal Food Delivery Logistics Market Revenues & Volume By Partnered Logistics for the Period 2022-2032\n- Historical Data and Forecast of Nepal Food Delivery Logistics Market Revenues & Volume By Service Type for the Period 2022-2032 [...] - Historical Data and Forecast of Nepal Food Delivery Logistics Market Revenues & Volume By Last-Mile Delivery for the Period 2022-2032\n- Historical Data and Forecast of Nepal Food Delivery L"
+        }
+      ],
+      "queries": [
+        "Food delivery Nepal business model commissions fees",
+        "Top food delivery competitors Nepal 2024",
+        "Nepal food delivery market size growth 2023-2024"
+      ],
+      "gap_rounds": [
+        [
+          "Nepal food delivery market revenue 2023 report",
+          "List of active food delivery apps Nepal 2024",
+          "Nepal gig economy food delivery labor regulations 2024"
+        ]
+      ]
+    },
+    "draft": {
+      "summary": "The food delivery market in Nepal shows modest growth driven by smartphone adoption and pandemic‑induced demand, but the evidence is thin and lacks quantitative market‑size data. Foodmandu is the largest platform with over 500,000 users and recent Series B funding, while commission rates vary across providers. Competition is intense and delivery inefficiencies remain a challenge.",
+      "competitors": [
+        {
+          "name": "Foodmandu",
+          "note": "Over 500,000 registered users and a Series B round that gave Team Ventures a 20% stake [F3][F4]."
+        },
+        {
+          "name": "Foodbusters",
+          "note": "Charges restaurants a commission of about 14‑15% [F1]."
+        }
+      ],
+      "key_observations": [
+        "Commission fees differ: Foodbusters 14‑15%, Foodmandu ~22%, Bhoj ~20%, Pathao Food ~18% [F1].",
+        "Foodmandu has over 500,000 registered users and supports QR, digital wallets, cards and cash on delivery [F3].",
+        "The COVID‑19 pandemic accelerated food‑delivery activity in Kathmandu, prompting many restaurants to partner with platforms [F5].",
+        "Growth is driven by rising smartphone penetration and changing lifestyles, but delivery inefficiencies and intense competition are key challenges [F6][F7].",
+        "Foodmandu's market success has spurred entry of several other food‑delivery startups in Nepal [F8]."
+      ],
+      "sources": [
+        {
+          "title": "The business of delivering food - The Record",
+          "url": "https://www.recordnepal.com/the-business-of-delivering-food",
+          "snippet": "“The least we pay is to Foodbusters, who charge around 14-15 percent while we pay the most to Foodmandu, who charge about 22 percent. Bhoj charges 20 percent and Pathao Food takes 18 percent,” said Gurung.\n\nLike Gurung, most restaurants usually partner with multiple delivery platforms, which allows them to maximize their delivery numbers.\n\n“We learned that each platform has its own set of loyal customers. We just wanted to tap into all the customer bases that we could,” said Gurung. [...] Companies like Foodmandu work with two active sets of actors: the delivery riders and the actual restauran"
+        },
+        {
+          "title": "Foodmandu - Apps on Google Play",
+          "url": "https://play.google.com/store/apps/details?id=com.app.foodmandu&hl=en_US",
+          "snippet": "Workshop Eatery, Bricks Café, Burger Shack, Koto, Le Trio, Pho 99, Chatime Nepal, Queens, and many more. 💳 Pay your way via QR codes, wallets, debit/credit cards, or cash on delivery (COD). 🍎🥬Stock up on daily essentials and fresh groceries instantly with Foodmandu OneMart! Currently delivering in selected locations. Don’t worry if we're not in your area yet—we're expanding soon, and your neighborhood will be next! Stay tuned for updates! 🧘♀️ Join 500,000+ happy foodies who trust Foodmandu and [...] arrow\\_forward 🍔🍟🍕🥟 Hungry much? Whether you’re chilling at home, hustling at work, or simply t"
+        },
+        {
+          "title": "Analysis of Food Delivery during COVID-19 Pandemic at Foodmandu",
+          "url": "https://e-research.siam.edu/wp-content/uploads/2021/12/BBA-2020-COOP-Analysis-of-Food-Delivery-during-COVID-19.pdf",
+          "snippet": "• To provide the choices of variety of restaurants • To establish a social impact by creating employment for both unemployed male and female who are keen to be self-employed • To provide quick delivery services to the customers 1.2 Strategies of the Company Especially after COVID-19 hit Nepal, several of the restaurants have started to collaborate with food delivery services. This has hugely expanded the market of food delivery service in Nepal and specially Kathmandu. Previously there were [...] to make the customer stay with them. They could initiate some offers, some reward programs, to mak"
+        },
+        {
+          "title": "Restaurant Delivery - Nepal | Statista Market Forecast",
+          "url": "https://www.statista.com/outlook/emo/online-food-delivery/meal-delivery/restaurant-delivery/nepal",
+          "snippet": "Out-Of-Scope\n\n- Phone orders\n- Online meal order and delivery both carried out by a platform (e.g. Deliveroo)\n- Deliveries of non-processed or non-prepared food\n\n## Revenue\n\n## Analyst Opinion\n\nThe Restaurant Delivery Market within the Meal Delivery Market in Nepal is experiencing mild growth, influenced by factors such as increased smartphone penetration, changing consumer lifestyles, and the rising preference for convenience in meal options. [...] - Revenue in the Restaurant Delivery market is projected to reach US$\\\\\\\\m in \\\\\\\\.\n- Revenue is expected to show an annual growth rate (CAGR \\\\\\\\"
+        },
+        {
+          "title": "Ecommerce Report | PDF | Restaurants | E Commerce",
+          "url": "https://www.scribd.com/document/1035942655/Ecommerce-Report",
+          "snippet": "The document is a project report on Bhoj Food Delivery Service, detailing its role in Nepal's e-commerce landscape and analyzing its operations, strengths, weaknesses, and challenges. It highlights Bhoj's contributions to digital food ordering while identifying issues such as delivery inefficiencies and competition. The report concludes with strategic recommendations for improving service reliability and market positioning.\n\nEcommerce Report"
+        },
+        {
+          "title": "Foodtech Startup Foodmandu Raises Series B To Enter New Cities - Team Ventures",
+          "url": "https://www.teamventures.com.np/news/business/foodtech-startup-foodmandu-raises-series-b-to-enter-new-cities",
+          "snippet": "Nepal-based food delivery platform Foodmandu has raised an undisclosed amount in Series B funding round from Nepal-based private investment fund Team Ventures. Prior to this, Foodmandu had got initial funding by Nepal-based venture capital True North Associates (TNA) in 2016.\n\nAs part of this transaction, Team Ventures will get a 20% stake in Foodmandu through  \na mix of new shares and partial buy-out of TNA’s holding. Notably, Foodmandu was the first investment made by TNA. [...] After the success of Foodmandu, a lot of other startups have also started to tap the food delivery business in Nep"
+        }
+      ],
+      "missing_information": [
+        "No market size or revenue figure for Nepal's online food‑delivery market.",
+        "No market‑share percentages for major platforms.",
+        "No data on number of active delivery riders per platform.",
+        "No projected growth rates or CAGR for the segment.",
+        "No regulatory or infrastructure constraints affecting last‑mile delivery."
+      ],
+      "competitors_dropped": 0
+    },
+    "critique": {
+      "approved": false,
+      "issues": [
+        {
+          "rule": "research",
+          "section": "summary",
+          "category": "unsupported_claim",
+          "comment": "The brief says Foodmandu is the largest platform, but the findings only show it has over 500,000 users and do not confirm it is the largest; rephrase to avoid the unverified ranking."
+        }
+      ],
+      "revision_instructions": "Remove or qualify the claim that Foodmandu is the largest platform; instead state that Foodmandu has over 500,000 registered users, which is a notable figure supported by the findings."
+    },
+    "final": {
+      "summary": "The food delivery market in Nepal shows modest growth driven by smartphone adoption and pandemic‑induced demand, but the evidence is thin and lacks quantitative market‑size data. Foodmandu has over 500,000 registered users and secured Series B funding, while commission rates vary across platforms. Competition is intense and delivery inefficiencies remain a challenge.",
+      "competitors": [
+        {
+          "name": "Foodmandu",
+          "note": "has over 500,000 registered users and secured Series B funding with Team Ventures taking a 20% stake [F3][F4]."
+        },
+        {
+          "name": "Foodbusters",
+          "note": "charges restaurants a commission of about 14‑15% [F1]."
+        }
+      ],
+      "key_observations": [
+        "Commission fees differ: Foodbusters 14‑15%, Foodmandu ~22%, Bhoj ~20%, Pathao Food ~18% [F1].",
+        "Foodmandu has over 500,000 registered users and supports QR, digital wallets, cards and cash on delivery [F3].",
+        "The COVID‑19 pandemic accelerated food‑delivery activity in Kathmandu, prompting many restaurants to partner with platforms [F5].",
+        "Growth is driven by rising smartphone penetration and changing lifestyles, but delivery inefficiencies and intense competition are key challenges [F6][F7].",
+        "Foodmandu's market success has spurred entry of several other food‑delivery startups in Nepal [F8]."
+      ],
+      "sources": [
+        {
+          "title": "The business of delivering food - The Record",
+          "url": "https://www.recordnepal.com/the-business-of-delivering-food",
+          "snippet": "“The least we pay is to Foodbusters, who charge around 14-15 percent while we pay the most to Foodmandu, who charge about 22 percent. Bhoj charges 20 percent and Pathao Food takes 18 percent,” said Gurung.\n\nLike Gurung, most restaurants usually partner with multiple delivery platforms, which allows them to maximize their delivery numbers.\n\n“We learned that each platform has its own set of loyal customers. We just wanted to tap into all the customer bases that we could,” said Gurung. [...] Companies like Foodmandu work with two active sets of actors: the delivery riders and the actual restauran"
+        },
+        {
+          "title": "Foodmandu - Apps on Google Play",
+          "url": "https://play.google.com/store/apps/details?id=com.app.foodmandu&hl=en_US",
+          "snippet": "Workshop Eatery, Bricks Café, Burger Shack, Koto, Le Trio, Pho 99, Chatime Nepal, Queens, and many more. 💳 Pay your way via QR codes, wallets, debit/credit cards, or cash on delivery (COD). 🍎🥬Stock up on daily essentials and fresh groceries instantly with Foodmandu OneMart! Currently delivering in selected locations. Don’t worry if we're not in your area yet—we're expanding soon, and your neighborhood will be next! Stay tuned for updates! 🧘♀️ Join 500,000+ happy foodies who trust Foodmandu and [...] arrow\\_forward 🍔🍟🍕🥟 Hungry much? Whether you’re chilling at home, hustling at work, or simply t"
+        },
+        {
+          "title": "Analysis of Food Delivery during COVID-19 Pandemic at Foodmandu",
+          "url": "https://e-research.siam.edu/wp-content/uploads/2021/12/BBA-2020-COOP-Analysis-of-Food-Delivery-during-COVID-19.pdf",
+          "snippet": "• To provide the choices of variety of restaurants • To establish a social impact by creating employment for both unemployed male and female who are keen to be self-employed • To provide quick delivery services to the customers 1.2 Strategies of the Company Especially after COVID-19 hit Nepal, several of the restaurants have started to collaborate with food delivery services. This has hugely expanded the market of food delivery service in Nepal and specially Kathmandu. Previously there were [...] to make the customer stay with them. They could initiate some offers, some reward programs, to mak"
+        },
+        {
+          "title": "Restaurant Delivery - Nepal | Statista Market Forecast",
+          "url": "https://www.statista.com/outlook/emo/online-food-delivery/meal-delivery/restaurant-delivery/nepal",
+          "snippet": "Out-Of-Scope\n\n- Phone orders\n- Online meal order and delivery both carried out by a platform (e.g. Deliveroo)\n- Deliveries of non-processed or non-prepared food\n\n## Revenue\n\n## Analyst Opinion\n\nThe Restaurant Delivery Market within the Meal Delivery Market in Nepal is experiencing mild growth, influenced by factors such as increased smartphone penetration, changing consumer lifestyles, and the rising preference for convenience in meal options. [...] - Revenue in the Restaurant Delivery market is projected to reach US$\\\\\\\\m in \\\\\\\\.\n- Revenue is expected to show an annual growth rate (CAGR \\\\\\\\"
+        },
+        {
+          "title": "Ecommerce Report | PDF | Restaurants | E Commerce",
+          "url": "https://www.scribd.com/document/1035942655/Ecommerce-Report",
+          "snippet": "The document is a project report on Bhoj Food Delivery Service, detailing its role in Nepal's e-commerce landscape and analyzing its operations, strengths, weaknesses, and challenges. It highlights Bhoj's contributions to digital food ordering while identifying issues such as delivery inefficiencies and competition. The report concludes with strategic recommendations for improving service reliability and market positioning.\n\nEcommerce Report"
+        },
+        {
+          "title": "Foodtech Startup Foodmandu Raises Series B To Enter New Cities - Team Ventures",
+          "url": "https://www.teamventures.com.np/news/business/foodtech-startup-foodmandu-raises-series-b-to-enter-new-cities",
+          "snippet": "Nepal-based food delivery platform Foodmandu has raised an undisclosed amount in Series B funding round from Nepal-based private investment fund Team Ventures. Prior to this, Foodmandu had got initial funding by Nepal-based venture capital True North Associates (TNA) in 2016.\n\nAs part of this transaction, Team Ventures will get a 20% stake in Foodmandu through  \na mix of new shares and partial buy-out of TNA’s holding. Notably, Foodmandu was the first investment made by TNA. [...] After the success of Foodmandu, a lot of other startups have also started to tap the food delivery business in Nep"
+        }
+      ],
+      "missing_information": [
+        "No market size or revenue figure for Nepal's online food‑delivery market.",
+        "No market‑share percentages for major platforms.",
+        "No data on number of active delivery riders per platform.",
+        "No projected growth rates or CAGR for the segment.",
+        "No regulatory or infrastructure constraints affecting last‑mile delivery."
+      ],
+      "competitors_dropped": 0
+    },
+    "revised": true,
+    "drafts": [
+      {
+        "summary": "The food delivery market in Nepal shows modest growth driven by smartphone adoption and pandemic‑induced demand, but the evidence is thin and lacks quantitative market‑size data. Foodmandu is the largest platform with over 500,000 users and recent Series B funding, while commission rates vary across providers. Competition is intense and delivery inefficiencies remain a challenge.",
+        "competitors": [
+          {
+            "name": "Foodmandu",
+            "note": "Over 500,000 registered users and a Series B round that gave Team Ventures a 20% stake [F3][F4]."
+          },
+          {
+            "name": "Foodbusters",
+            "note": "Charges restaurants a commission of about 14‑15% [F1]."
+          }
+        ],
+        "key_observations": [
+          "Commission fees differ: Foodbusters 14‑15%, Foodmandu ~22%, Bhoj ~20%, Pathao Food ~18% [F1].",
+          "Foodmandu has over 500,000 registered users and supports QR, digital wallets, cards and cash on delivery [F3].",
+          "The COVID‑19 pandemic accelerated food‑delivery activity in Kathmandu, prompting many restaurants to partner with platforms [F5].",
+          "Growth is driven by rising smartphone penetration and changing lifestyles, but delivery inefficiencies and intense competition are key challenges [F6][F7].",
+          "Foodmandu's market success has spurred entry of several other food‑delivery startups in Nepal [F8]."
+        ],
+        "sources": [
+          {
+            "title": "The business of delivering food - The Record",
+            "url": "https://www.recordnepal.com/the-business-of-delivering-food",
+            "snippet": "“The least we pay is to Foodbusters, who charge around 14-15 percent while we pay the most to Foodmandu, who charge about 22 percent. Bhoj charges 20 percent and Pathao Food takes 18 percent,” said Gurung.\n\nLike Gurung, most restaurants usually partner with multiple delivery platforms, which allows them to maximize their delivery numbers.\n\n“We learned that each platform has its own set of loyal customers. We just wanted to tap into all the customer bases that we could,” said Gurung. [...] Companies like Foodmandu work with two active sets of actors: the delivery riders and the actual restauran"
+          },
+          {
+            "title": "Foodmandu - Apps on Google Play",
+            "url": "https://play.google.com/store/apps/details?id=com.app.foodmandu&hl=en_US",
+            "snippet": "Workshop Eatery, Bricks Café, Burger Shack, Koto, Le Trio, Pho 99, Chatime Nepal, Queens, and many more. 💳 Pay your way via QR codes, wallets, debit/credit cards, or cash on delivery (COD). 🍎🥬Stock up on daily essentials and fresh groceries instantly with Foodmandu OneMart! Currently delivering in selected locations. Don’t worry if we're not in your area yet—we're expanding soon, and your neighborhood will be next! Stay tuned for updates! 🧘♀️ Join 500,000+ happy foodies who trust Foodmandu and [...] arrow\\_forward 🍔🍟🍕🥟 Hungry much? Whether you’re chilling at home, hustling at work, or simply t"
+          },
+          {
+            "title": "Analysis of Food Delivery during COVID-19 Pandemic at Foodmandu",
+            "url": "https://e-research.siam.edu/wp-content/uploads/2021/12/BBA-2020-COOP-Analysis-of-Food-Delivery-during-COVID-19.pdf",
+            "snippet": "• To provide the choices of variety of restaurants • To establish a social impact by creating employment for both unemployed male and female who are keen to be self-employed • To provide quick delivery services to the customers 1.2 Strategies of the Company Especially after COVID-19 hit Nepal, several of the restaurants have started to collaborate with food delivery services. This has hugely expanded the market of food delivery service in Nepal and specially Kathmandu. Previously there were [...] to make the customer stay with them. They could initiate some offers, some reward programs, to mak"
+          },
+          {
+            "title": "Restaurant Delivery - Nepal | Statista Market Forecast",
+            "url": "https://www.statista.com/outlook/emo/online-food-delivery/meal-delivery/restaurant-delivery/nepal",
+            "snippet": "Out-Of-Scope\n\n- Phone orders\n- Online meal order and delivery both carried out by a platform (e.g. Deliveroo)\n- Deliveries of non-processed or non-prepared food\n\n## Revenue\n\n## Analyst Opinion\n\nThe Restaurant Delivery Market within the Meal Delivery Market in Nepal is experiencing mild growth, influenced by factors such as increased smartphone penetration, changing consumer lifestyles, and the rising preference for convenience in meal options. [...] - Revenue in the Restaurant Delivery market is projected to reach US$\\\\\\\\m in \\\\\\\\.\n- Revenue is expected to show an annual growth rate (CAGR \\\\\\\\"
+          },
+          {
+            "title": "Ecommerce Report | PDF | Restaurants | E Commerce",
+            "url": "https://www.scribd.com/document/1035942655/Ecommerce-Report",
+            "snippet": "The document is a project report on Bhoj Food Delivery Service, detailing its role in Nepal's e-commerce landscape and analyzing its operations, strengths, weaknesses, and challenges. It highlights Bhoj's contributions to digital food ordering while identifying issues such as delivery inefficiencies and competition. The report concludes with strategic recommendations for improving service reliability and market positioning.\n\nEcommerce Report"
+          },
+          {
+            "title": "Foodtech Startup Foodmandu Raises Series B To Enter New Cities - Team Ventures",
+            "url": "https://www.teamventures.com.np/news/business/foodtech-startup-foodmandu-raises-series-b-to-enter-new-cities",
+            "snippet": "Nepal-based food delivery platform Foodmandu has raised an undisclosed amount in Series B funding round from Nepal-based private investment fund Team Ventures. Prior to this, Foodmandu had got initial funding by Nepal-based venture capital True North Associates (TNA) in 2016.\n\nAs part of this transaction, Team Ventures will get a 20% stake in Foodmandu through  \na mix of new shares and partial buy-out of TNA’s holding. Notably, Foodmandu was the first investment made by TNA. [...] After the success of Foodmandu, a lot of other startups have also started to tap the food delivery business in Nep"
+          }
+        ],
+        "missing_information": [
+          "No market size or revenue figure for Nepal's online food‑delivery market.",
+          "No market‑share percentages for major platforms.",
+          "No data on number of active delivery riders per platform.",
+          "No projected growth rates or CAGR for the segment.",
+          "No regulatory or infrastructure constraints affecting last‑mile delivery."
+        ],
+        "competitors_dropped": 0
+      },
+      {
+        "summary": "The food delivery market in Nepal shows modest growth driven by smartphone adoption and pandemic‑induced demand, but the evidence is thin and lacks quantitative market‑size data. Foodmandu has over 500,000 registered users and secured Series B funding, while commission rates vary across platforms. Competition is intense and delivery inefficiencies remain a challenge.",
+        "competitors": [
+          {
+            "name": "Foodmandu",
+            "note": "has over 500,000 registered users and secured Series B funding with Team Ventures taking a 20% stake [F3][F4]."
+          },
+          {
+            "name": "Foodbusters",
+            "note": "charges restaurants a commission of about 14‑15% [F1]."
+          }
+        ],
+        "key_observations": [
+          "Commission fees differ: Foodbusters 14‑15%, Foodmandu ~22%, Bhoj ~20%, Pathao Food ~18% [F1].",
+          "Foodmandu has over 500,000 registered users and supports QR, digital wallets, cards and cash on delivery [F3].",
+          "The COVID‑19 pandemic accelerated food‑delivery activity in Kathmandu, prompting many restaurants to partner with platforms [F5].",
+          "Growth is driven by rising smartphone penetration and changing lifestyles, but delivery inefficiencies and intense competition are key challenges [F6][F7].",
+          "Foodmandu's market success has spurred entry of several other food‑delivery startups in Nepal [F8]."
+        ],
+        "sources": [
+          {
+            "title": "The business of delivering food - The Record",
+            "url": "https://www.recordnepal.com/the-business-of-delivering-food",
+            "snippet": "“The least we pay is to Foodbusters, who charge around 14-15 percent while we pay the most to Foodmandu, who charge about 22 percent. Bhoj charges 20 percent and Pathao Food takes 18 percent,” said Gurung.\n\nLike Gurung, most restaurants usually partner with multiple delivery platforms, which allows them to maximize their delivery numbers.\n\n“We learned that each platform has its own set of loyal customers. We just wanted to tap into all the customer bases that we could,” said Gurung. [...] Companies like Foodmandu work with two active sets of actors: the delivery riders and the actual restauran"
+          },
+          {
+            "title": "Foodmandu - Apps on Google Play",
+            "url": "https://play.google.com/store/apps/details?id=com.app.foodmandu&hl=en_US",
+            "snippet": "Workshop Eatery, Bricks Café, Burger Shack, Koto, Le Trio, Pho 99, Chatime Nepal, Queens, and many more. 💳 Pay your way via QR codes, wallets, debit/credit cards, or cash on delivery (COD). 🍎🥬Stock up on daily essentials and fresh groceries instantly with Foodmandu OneMart! Currently delivering in selected locations. Don’t worry if we're not in your area yet—we're expanding soon, and your neighborhood will be next! Stay tuned for updates! 🧘♀️ Join 500,000+ happy foodies who trust Foodmandu and [...] arrow\\_forward 🍔🍟🍕🥟 Hungry much? Whether you’re chilling at home, hustling at work, or simply t"
+          },
+          {
+            "title": "Analysis of Food Delivery during COVID-19 Pandemic at Foodmandu",
+            "url": "https://e-research.siam.edu/wp-content/uploads/2021/12/BBA-2020-COOP-Analysis-of-Food-Delivery-during-COVID-19.pdf",
+            "snippet": "• To provide the choices of variety of restaurants • To establish a social impact by creating employment for both unemployed male and female who are keen to be self-employed • To provide quick delivery services to the customers 1.2 Strategies of the Company Especially after COVID-19 hit Nepal, several of the restaurants have started to collaborate with food delivery services. This has hugely expanded the market of food delivery service in Nepal and specially Kathmandu. Previously there were [...] to make the customer stay with them. They could initiate some offers, some reward programs, to mak"
+          },
+          {
+            "title": "Restaurant Delivery - Nepal | Statista Market Forecast",
+            "url": "https://www.statista.com/outlook/emo/online-food-delivery/meal-delivery/restaurant-delivery/nepal",
+            "snippet": "Out-Of-Scope\n\n- Phone orders\n- Online meal order and delivery both carried out by a platform (e.g. Deliveroo)\n- Deliveries of non-processed or non-prepared food\n\n## Revenue\n\n## Analyst Opinion\n\nThe Restaurant Delivery Market within the Meal Delivery Market in Nepal is experiencing mild growth, influenced by factors such as increased smartphone penetration, changing consumer lifestyles, and the rising preference for convenience in meal options. [...] - Revenue in the Restaurant Delivery market is projected to reach US$\\\\\\\\m in \\\\\\\\.\n- Revenue is expected to show an annual growth rate (CAGR \\\\\\\\"
+          },
+          {
+            "title": "Ecommerce Report | PDF | Restaurants | E Commerce",
+            "url": "https://www.scribd.com/document/1035942655/Ecommerce-Report",
+            "snippet": "The document is a project report on Bhoj Food Delivery Service, detailing its role in Nepal's e-commerce landscape and analyzing its operations, strengths, weaknesses, and challenges. It highlights Bhoj's contributions to digital food ordering while identifying issues such as delivery inefficiencies and competition. The report concludes with strategic recommendations for improving service reliability and market positioning.\n\nEcommerce Report"
+          },
+          {
+            "title": "Foodtech Startup Foodmandu Raises Series B To Enter New Cities - Team Ventures",
+            "url": "https://www.teamventures.com.np/news/business/foodtech-startup-foodmandu-raises-series-b-to-enter-new-cities",
+            "snippet": "Nepal-based food delivery platform Foodmandu has raised an undisclosed amount in Series B funding round from Nepal-based private investment fund Team Ventures. Prior to this, Foodmandu had got initial funding by Nepal-based venture capital True North Associates (TNA) in 2016.\n\nAs part of this transaction, Team Ventures will get a 20% stake in Foodmandu through  \na mix of new shares and partial buy-out of TNA’s holding. Notably, Foodmandu was the first investment made by TNA. [...] After the success of Foodmandu, a lot of other startups have also started to tap the food delivery business in Nep"
+          }
+        ],
+        "missing_information": [
+          "No market size or revenue figure for Nepal's online food‑delivery market.",
+          "No market‑share percentages for major platforms.",
+          "No data on number of active delivery riders per platform.",
+          "No projected growth rates or CAGR for the segment.",
+          "No regulatory or infrastructure constraints affecting last‑mile delivery."
+        ],
+        "competitors_dropped": 0
+      }
+    ],
+    "critiques": [
+      {
+        "approved": false,
+        "issues": [
+          {
+            "rule": "research",
+            "section": "summary",
+            "category": "unsupported_claim",
+            "comment": "The brief says Foodmandu is the largest platform, but the findings only show it has over 500,000 users and do not confirm it is the largest; rephrase to avoid the unverified ranking."
+          }
+        ],
+        "revision_instructions": "Remove or qualify the claim that Foodmandu is the largest platform; instead state that Foodmandu has over 500,000 registered users, which is a notable figure supported by the findings."
+      }
+    ],
+    "max_iterations": 1,
+    "evaluation": {
+      "metrics": [
+        {
+          "name": "retrieval_check",
+          "score": 1.0,
+          "passed": true,
+          "reason": "12 sources, 9 domains",
+          "details": []
+        },
+        {
+          "name": "retrieval_relevance",
+          "score": 0.9166666666666666,
+          "passed": true,
+          "reason": "11/12 retrieved documents judged relevant (need 60%)",
+          "details": []
+        },
+        {
+          "name": "research_faithfulness",
+          "score": 1.0,
+          "passed": true,
+          "reason": "8/8 claims supported (need 70%)",
+          "details": []
+        },
+        {
+          "name": "brief_groundedness",
+          "score": 1.0,
+          "passed": true,
+          "reason": "8/8 claims supported (need 70%)",
+          "details": []
+        },
+        {
+          "name": "citation_validity",
+          "score": 1.0,
+          "passed": true,
+          "reason": "all cited URLs were retrieved; 6/12 retrieved sources used",
+          "details": []
+        },
+        {
+          "name": "structure_check",
+          "score": 1.0,
+          "passed": true,
+          "reason": "all sections present",
+          "details": []
+        },
+        {
+          "name": "style_check",
+          "score": 1.0,
+          "passed": true,
+          "reason": "no slop phrases or vague generalisations",
+          "details": []
+        },
+        {
+          "name": "gap_honesty",
+          "score": 1.0,
+          "passed": true,
+          "reason": "The brief explicitly states that evidence is thin and lacks quantitative market‑size data, and it does not claim any of the missing facts listed.",
+          "details": []
+        }
+      ],
+      "verdict": "RAG WORKING",
+      "failed_checks": []
+    },
+    "metrics": [
+      {
+        "step": "researcher",
+        "seconds": 64.27,
+        "llm_calls": 8,
+        "input_tokens": 10733,
+        "output_tokens": 5202
+      },
+      {
+        "step": "analyst",
+        "seconds": 39.79,
+        "llm_calls": 1,
+        "input_tokens": 3445,
+        "output_tokens": 1710
+      },
+      {
+        "step": "critic",
+        "seconds": 48.57,
+        "llm_calls": 1,
+        "input_tokens": 5016,
+        "output_tokens": 1210
+      },
+      {
+        "step": "revise",
+        "seconds": 49.45,
+        "llm_calls": 1,
+        "input_tokens": 5072,
+        "output_tokens": 980
+      },
+      {
+        "step": "stop",
+        "seconds": 0.0,
+        "llm_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0
+      },
+      {
+        "step": "evaluate",
+        "seconds": 27.81,
+        "llm_calls": 4,
+        "input_tokens": 7310,
+        "output_tokens": 3108
+      },
+      {
+        "step": "finish",
+        "seconds": 0.0,
+        "llm_calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0
+      }
+    ],
+    "run_dir": "/tmp/claude-1000/-home-cive-Projects-Eb-pearls/0fad4625-1b13-442b-ab3d-52ba6712b0ee/scratchpad/runs/20261122-195843-analyze-the-food-delivery-market-in-nepa",
+    "log": [
+      "Orchestrator: received query 'Analyze the food delivery market in Nepal', starting workflow.",
+      "Researcher: gathering information (web search)...",
+      "Researcher: gap round 1, searched: Nepal food delivery market revenue 2023 report; List of active food delivery apps Nepal 2024; Nepal gig economy food delivery labor regulations 2024",
+      "Researcher: 8 findings from 12 sources, 6 gaps left.",
+      "Analyst: writing draft brief (v0)...",
+      "Critic: reviewing draft v0 in a fresh context...",
+      "Critic: 1 issues (research/unsupported_claim)",
+      "Analyst: revising, applying 1 issues -> v1 (round 1 of max 1)...",
+      "Orchestrator: review budget used (1 rounds); v1 is final.",
+      "Evaluator: scoring retrieval and grounding...",
+      "Evaluator: RAG WORKING.",
+      "Orchestrator: grounding check found 0 flag(s).",
+      "Orchestrator: workflow complete."
+    ],
+    "trace": [
+      {
+        "role": "Orchestrator",
+        "status": "ok",
+        "seconds": 0.0,
+        "detail": "query received, workflow started"
+      },
+      {
+        "role": "Researcher",
+        "status": "ok",
+        "seconds": 64.27,
+        "detail": "8 findings, 12 sources, provider=tavily"
+      },
+      {
+        "role": "Analyst",
+        "status": "ok",
+        "seconds": 39.79,
+        "detail": "draft v0, 5 observations"
+      },
+      {
+        "role": "Critic",
+        "status": "ok",
+        "seconds": 48.57,
+        "detail": "changes requested (1 issues)"
+      },
+      {
+        "role": "Analyst",
+        "status": "ok",
+        "seconds": 49.45,
+        "detail": "revision v1"
+      },
+      {
+        "role": "Orchestrator",
+        "status": "ok",
+        "seconds": 0.0,
+        "detail": "revision budget used"
+      },
+      {
+        "role": "Evaluator",
+        "status": "ok",
+        "seconds": 27.81,
+        "detail": ""
+      },
+      {
+        "role": "Orchestrator",
+        "status": "ok",
+        "seconds": 0.0,
+        "detail": ""
+      }
+    ],
+    "grounding": [],
+    "error": null
+  }
+}

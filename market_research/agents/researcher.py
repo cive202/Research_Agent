@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from .. import config
 from ..llm import LLMError, ask_json
-from ..models import Research, ResearchResult, WorkflowState
+from ..models import Finding, FindingDraft, Research, ResearchResult, WorkflowState
 from ..retrieval import plan_gap_queries, plan_queries, select_relevant
-from ..search import SearchUnavailable, read_urls, web_search
+from ..search import SearchUnavailable, last_provider, read_urls, web_search
 from ..tracing import track
 from ..urls import normalize_url, snap_urls
 from .sample_data import SAMPLE_RESEARCH
@@ -45,10 +45,24 @@ def _retrieve(query: str, extra_queries: list[str] | None = None) -> tuple[list,
     return kept[: config.MAX_SOURCES], queries
 
 
+def number_findings(findings: list[FindingDraft], sources: list) -> list[Finding]:
+    """Cap at MAX_FINDINGS, then number F1, F2, ... in code and attach a short snippet of the source."""
+    by_url = {normalize_url(s.url): s for s in sources if s.url}
+    findings = [f if isinstance(f, Finding) else Finding(**f.model_dump())
+                for f in findings[: config.MAX_FINDINGS]]
+    for n, f in enumerate(findings, 1):
+        f.id = f"F{n}"
+        src = by_url.get(normalize_url(f.source_url))
+        if src and not f.snippet:
+            f.snippet = src.snippet[: config.FINDING_SNIPPET_CHARS].strip()
+    return findings
+
+
 def _extract(query: str, sources: list) -> ResearchResult:
     docs = "\n\n".join(f"[{i + 1}] {s.title}\nURL: {s.url}\n{s.snippet}" for i, s in enumerate(sources))
     result = ask_json(ResearchResult, SYSTEM, f"Research topic: {query}\n\nDocuments:\n{docs}")
     snap_urls(result.findings, sources, "source_url")
+    result.findings = number_findings(result.findings, sources)  # now numbered Finding objects
     return result
 
 
@@ -87,7 +101,7 @@ def _with_seeds(seeds: list, sources: list) -> list:
 @track("researcher")
 def researcher(state: WorkflowState, use_sample: bool) -> Research:
     if use_sample:
-        return SAMPLE_RESEARCH
+        return SAMPLE_RESEARCH.model_copy(deep=True)
     g = state.guideline
     topic = g.topic if g else state.query
     seeds = read_urls(g.seed_links[: config.MAX_SEED_LINKS]) if g and g.seed_links else []
@@ -103,5 +117,5 @@ def researcher(state: WorkflowState, use_sample: bool) -> Research:
 
     result = _extract(state.query, sources)
     sources, result, rounds = _fill_gaps(state.query, sources, result, queries)
-    return Research(mode="web", findings=result.findings, data_gaps=result.data_gaps, sources=sources,
-                    queries=queries, gap_rounds=rounds)
+    return Research(mode="web", provider=last_provider() or "web", findings=result.findings,
+                    data_gaps=result.data_gaps, sources=sources, queries=queries, gap_rounds=rounds)

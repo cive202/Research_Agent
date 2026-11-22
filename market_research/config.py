@@ -13,9 +13,12 @@ MAX_QUERY_CHARS = 200
 # --- search
 MAX_SOURCES = 8
 SNIPPET_CHARS = 600
+FINDING_SNIPPET_CHARS = 200
 MIN_SNIPPET_CHARS = 100
 SEARCH_QUERY_TEMPLATES = ("{q} market overview", "{q} competitors", "{q} latest news")
-MAX_PLANNED_QUERIES = 5
+MAX_PLANNED_QUERIES = 3     # search queries planned from the user query
+MAX_FINDINGS = 10           # numbered findings F1..F10 handed to the Analyst
+THIN_EVIDENCE_FINDINGS = 4  # fewer findings than this: the brief must say the evidence is thin
 RESULTS_PER_QUERY = 4
 URL_SNAP_CUTOFF = 0.9
 
@@ -35,8 +38,8 @@ RUNS_DIR = "runs"
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROFILES_DIR = os.getenv("PROFILES_DIR", os.path.join(PROJECT_ROOT, "profiles"))
 MAX_FEW_SHOT = 1            # example briefs sent to the Analyst; raise only if quality drops without them
-REVIEW_ITERATIONS = 2       # review -> edit rounds; stops early when the Critic approves
-MAX_REVIEW_ITERATIONS = 5
+REVIEW_ITERATIONS = 1       # review -> edit rounds; the assignment allows ONE revision
+MAX_REVIEW_ITERATIONS = 1   # hard cap, also applied in orchestrator()
 MAX_SEED_LINKS = 5          # guideline links read before searching
 
 # --- judge calibration (labelled dataset of real runs)
@@ -76,6 +79,11 @@ def groq_api_key() -> str | None:
 
 def tavily_api_key() -> str | None:
     return _key("TAVILY_API_KEY")
+
+
+def use_sample_env() -> bool:
+    """USE_SAMPLE_DATA=1 forces labelled sample data instead of web search."""
+    return os.getenv("USE_SAMPLE_DATA", "").strip().lower() in ("1", "true", "yes", "on")
 
 
 def model_name() -> str:

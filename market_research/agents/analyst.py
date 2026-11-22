@@ -5,10 +5,12 @@ Context = guideline (what to write) + profiles and few-shot examples (how to wri
 from __future__ import annotations
 
 import json
+import re
 
 from .. import config
+from ..grounding import derive_sources
 from ..llm import ask_json
-from ..models import Brief, Critique, WorkflowState
+from ..models import MAX_COMPETITORS, Brief, Critique, Research, WorkflowState
 from ..profiles import writing_context
 from ..tracing import track
 from ..urls import snap_urls
@@ -16,8 +18,12 @@ from ..urls import snap_urls
 SYSTEM = (
     "You are the Analyst. Write a SHORT research brief using ONLY the provided findings. "
     "Rules: summary 2-4 sentences; at most TWO competitors and only if the findings support it; "
-    "3-5 key observations; list sources taken from the findings (title and URL); "
-    "put anything not covered by the findings under missing_information. "
+    "3-5 key observations; "
+    "EVERY key observation and EVERY competitor note must end with the IDs of the findings that support it, "
+    "written like [F2] or [F1][F4]; cite only IDs that exist in the findings, never invent an ID; "
+    "put anything not covered by the findings under missing_information (for example market size, "
+    "market share or revenue figures when no finding has them). Return competitors_dropped as 0. "
+    "If there are only a few findings, say in the summary that the evidence is thin. "
     "Never invent numbers or facts. If the findings are labelled SAMPLE, say so in the summary. "
     "If a guideline is given, answer its angle for its audience and cover its key questions and "
     "must-include items where the findings allow; its constraints override the profiles. "
@@ -29,7 +35,8 @@ SYSTEM = (
 
 
 def _context(state: WorkflowState) -> str:
-    findings = state.research.model_dump(exclude={"sources": {"__all__": {"snippet"}}}) if state.research else {}
+    findings = state.research.model_dump(
+        exclude={"sources": {"__all__": {"snippet"}}, "findings": {"__all__": {"snippet"}}}) if state.research else {}
     guideline = state.guideline.to_prompt() if state.guideline else f"(no guideline; topic: {state.query})"
     profiles = writing_context()
     return (
@@ -37,6 +44,39 @@ def _context(state: WorkflowState) -> str:
         + (f"\n\nWriting profiles and examples:\n{profiles}" if profiles else "")
         + f"\n\nFindings (JSON):\n{json.dumps(findings, indent=2)}"
     )
+
+
+# A figure with a unit: money, a percentage or a count in millions. Used to decide if numbers were found.
+_FIGURE = re.compile(r"(\$|US\$|USD|NPR|Rs\.?)\s?\d|\d[\d,.]*\s?(%|percent|million|billion|crore|lakh|mn|bn)\b", re.I)
+NO_FIGURES = "No market size, revenue or market share figures were found in the evidence."
+
+
+def finalize_brief(brief: Brief, research: Research | None) -> Brief:
+    """Rules enforced in code after the model answers, so they do not depend on the prompt being obeyed.
+
+    Competitors are capped (also in the Brief model), sources are rebuilt from the cited findings, sample data
+    is labelled in the text, and thin or number-free evidence is stated honestly under missing information.
+    """
+    brief.competitors = brief.competitors[:MAX_COMPETITORS]
+    if research is None:
+        return brief
+    derived = derive_sources(brief, research)
+    if derived:
+        brief.sources = derived
+    if research.mode == "sample" and not brief.summary.upper().startswith("SAMPLE DATA"):
+        brief.summary = "SAMPLE DATA (not live research): " + brief.summary
+    notes: list[str] = []
+    n = len(research.findings)
+    if n < config.THIN_EVIDENCE_FINDINGS:
+        notes.append(f"Evidence is thin: only {n} finding(s) were available, so conclusions are tentative.")
+    if not any(_FIGURE.search(f.claim) for f in research.findings):
+        notes.append(NO_FIGURES)
+    have = " ".join(brief.missing_information).lower()
+    for note in notes:
+        covered = "thin" in have if "thin" in note else ("figures" in have or "market size" in have)
+        if not covered:
+            brief.missing_information.append(note)
+    return brief
 
 
 @track("analyst")
@@ -63,4 +103,4 @@ def analyst(state: WorkflowState, revise: bool = False, draft: Brief | None = No
     brief = ask_json(Brief, SYSTEM, user)
     if state.research:
         snap_urls(brief.sources, state.research.sources)
-    return brief
+    return finalize_brief(brief, state.research)

@@ -6,7 +6,7 @@ import pytest
 from market_research import config, tools, workflow
 from market_research.evaluation import calibration
 from market_research.guideline import parse_guideline
-from market_research.models import Brief, Critique, Issue, Research, ResearchResult
+from market_research.models import Brief, Critique, Issue, Research
 from market_research.profiles import load_examples, load_profiles, writing_context
 from tests.test_workflow_mock import SRCS, analyst_mod, critic_mod, fake_ask_json, researcher_mod, setup
 
@@ -66,7 +66,7 @@ def test_guideline_drives_queries_and_reaches_writer_and_critic(monkeypatch):
     assert "EXAMPLE BRIEF" in prompts["Brief"] and "EXAMPLE BRIEF" not in prompts["Critique"]
 
 
-def test_review_loop_runs_fixed_rounds_and_keeps_every_version(monkeypatch, tmp_path):
+def test_critic_rejecting_every_round_still_gives_only_one_revision(monkeypatch, tmp_path):
     setup(monkeypatch)
     calls = {"critic": 0, "edit": 0}
 
@@ -89,12 +89,12 @@ def test_review_loop_runs_fixed_rounds_and_keeps_every_version(monkeypatch, tmp_
 
     for mod in (analyst_mod, critic_mod):
         monkeypatch.setattr(mod, "ask_json", ask)
-    st = workflow.orchestrator("q", iterations=3, save_dir=str(tmp_path))
-    assert calls == {"critic": 3, "edit": 3}
-    assert [d.summary for d in st.drafts] == ["s", "v1", "v2", "v3"] and st.final.summary == "v3"
-    assert len(st.critiques) == 3 and st.draft.summary == "s"
+    st = workflow.orchestrator("q", iterations=3, save_dir=str(tmp_path))  # 3 is clamped to the hard cap of 1
+    assert calls == {"critic": 1, "edit": 1}
+    assert [d.summary for d in st.drafts] == ["s", "v1"] and st.final.summary == "v1"
+    assert len(st.critiques) == 1 and st.draft.summary == "s" and st.revised
     files = {p.name for p in (tmp_path / st.run_dir.split("/")[-1]).iterdir()}
-    assert {"draft_v0.md", "draft_v3.md", "reviews.md"} <= files
+    assert {"draft_v0.md", "draft_v1.md", "reviews.md"} <= files
 
 
 def test_review_loop_stops_when_approved(monkeypatch):
@@ -105,8 +105,8 @@ def test_review_loop_stops_when_approved(monkeypatch):
 
 def test_mcp_tools_end_to_end(monkeypatch, tmp_path):
     setup(monkeypatch)
-    import market_research.search as search
     import market_research.retrieval as retrieval
+    import market_research.search as search
 
     monkeypatch.setattr(search, "web_search", lambda q, queries=None: SRCS)
     monkeypatch.setattr(search, "read_urls", lambda urls: SRCS[:1])

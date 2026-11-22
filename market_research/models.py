@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, model_validator
 
 from .guideline import Guideline
 
@@ -14,15 +14,24 @@ class Source(BaseModel):
     snippet: str = Field(default="", description="Retrieved text (used by the evaluator).")
 
 
-class Finding(BaseModel):
+MAX_COMPETITORS = 2
+
+
+class FindingDraft(BaseModel):
+    """What the model writes for one finding. The ID and snippet are added by code, never by the model."""
     claim: str = Field(description="One factual statement found during research.")
     source_title: str = Field(default="", description="Title of the source page.")
     source_url: str = Field(default="", description="URL of the source, empty for sample data.")
 
 
+class Finding(FindingDraft):
+    id: str = Field(default="", description="F1, F2, ... assigned by code after extraction.")
+    snippet: str = Field(default="", description="Short excerpt of the source text, set by code.")
+
+
 class ResearchResult(BaseModel):
     """What the Researcher is asked to produce."""
-    findings: list[Finding] = Field(description="5-10 findings relevant to the query.")
+    findings: list[FindingDraft] = Field(description="5-10 findings relevant to the query.")
     data_gaps: list[str] = Field(
         default_factory=list,
         description="Things that could not be found or verified.",
@@ -31,7 +40,9 @@ class ResearchResult(BaseModel):
 
 class Research(ResearchResult):
     """Researcher output plus metadata added by code (not by the model)."""
+    findings: list[Finding] = Field(default_factory=list, description="Numbered findings F1, F2, ...")
     mode: Literal["web", "sample"] = "web"
+    provider: str = Field(default="", description="Search provider used: tavily, duckduckgo or sample.")
     sources: list[Source] = Field(default_factory=list, description="Retrieved documents.")
     queries: list[str] = Field(default_factory=list, description="Search queries run (initial plan).")
     gap_rounds: list[list[str]] = Field(
@@ -41,7 +52,7 @@ class Research(ResearchResult):
 
 class Competitor(BaseModel):
     name: str
-    note: str = Field(description="One sentence on why it matters, based on the findings.")
+    note: str = Field(description="One sentence on why it matters. Must end with finding citations like [F2].")
 
 
 class Brief(BaseModel):
@@ -49,14 +60,21 @@ class Brief(BaseModel):
     competitors: list[Competitor] = Field(
         default_factory=list, description="At most two competitors, if relevant."
     )
-    key_observations: list[str] = Field(description="3-5 short observations.")
+    key_observations: list[str] = Field(
+        description="3-5 short observations. Each must cite finding IDs, for example 'Foodmandu leads Kathmandu [F2].'")
     sources: list[Source] = Field(default_factory=list)
     missing_information: list[str] = Field(default_factory=list)
+    competitors_dropped: int = Field(default=0, description="Set by code. Always return 0.")
 
-    @field_validator("competitors", mode="before")
+    @model_validator(mode="before")
     @classmethod
-    def _max_two(cls, v):
-        return v[:2] if isinstance(v, list) else v
+    def _cap_competitors(cls, data):
+        """Hard limit in code: keep at most two competitors and remember how many were cut."""
+        comps = data.get("competitors") if isinstance(data, dict) else None
+        if isinstance(comps, list) and len(comps) > MAX_COMPETITORS:
+            data = {**data, "competitors": comps[:MAX_COMPETITORS],
+                    "competitors_dropped": len(comps) - MAX_COMPETITORS}
+        return data
 
 
 IssueCategory = Literal["competitor_limit", "unsupported_claim", "missing_gap", "style", "other"]
@@ -126,6 +144,25 @@ class StepMetric(BaseModel):
     output_tokens: int = 0
 
 
+GroundingCode = Literal["uncited_observation", "unknown_citation", "too_many_competitors",
+                        "unsupported_competitor", "unknown_source"]
+
+
+class GroundingFlag(BaseModel):
+    """One evidence problem found by the plain-Python grounding check (no LLM)."""
+    code: GroundingCode
+    section: str
+    message: str
+
+
+class TraceStep(BaseModel):
+    """One step of the run: which role ran, how it ended and how long it took."""
+    role: str
+    status: Literal["ok", "error"] = "ok"
+    seconds: float = 0.0
+    detail: str = ""
+
+
 class WorkflowState(BaseModel):
     """The single object handed from role to role."""
     query: str
@@ -142,3 +179,6 @@ class WorkflowState(BaseModel):
     metrics: list[StepMetric] = Field(default_factory=list)
     run_dir: Optional[str] = Field(default=None, description="Where run artifacts were saved, if enabled.")
     log: list[str] = Field(default_factory=list)
+    trace: list[TraceStep] = Field(default_factory=list, description="Per-run agent trace.")
+    grounding: list[GroundingFlag] = Field(default_factory=list, description="Flags for the final brief.")
+    error: Optional[str] = Field(default=None, description="Friendly message if the run stopped early.")

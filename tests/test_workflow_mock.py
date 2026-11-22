@@ -1,11 +1,14 @@
 """End-to-end workflow + evaluator with the LLM and search mocked (no keys needed)."""
-from market_research import workflow
+import importlib
+
+from market_research import retrieval, workflow
 from market_research.agents import analyst, critic, researcher  # noqa: F401  (ensure modules load)
 from market_research.evaluation import judges, rules, tamper
+from market_research.evaluation.judges import Claim as _Claim
+from market_research.evaluation.judges import Claims as _Claims
+from market_research.evaluation.judges import Honesty as _Honesty
+from market_research.evaluation.judges import Relevance as _Relevance
 from market_research.models import Brief, Competitor, Critique, Finding, ResearchResult, Source
-from market_research.evaluation.judges import Claim as _Claim, Claims as _Claims, Honesty as _Honesty, Relevance as _Relevance
-import importlib
-from market_research import retrieval
 
 # `market_research.agents` re-exports functions with the same names as its submodules,
 # so fetch the submodules explicitly.
@@ -20,14 +23,14 @@ def fake_ask_json(schema, system, user, model=None, temperature=0.3):
     if schema is ResearchResult:
         return ResearchResult(findings=[Finding(claim="f1", source_title="aa", source_url=SRCS[0].url)], data_gaps=["size"])
     if schema is Brief:
-        return Brief(summary="s", competitors=[Competitor(name="X", note="n")], key_observations=["a", "b", "c"],
+        return Brief(summary="s", competitors=[Competitor(name="X", note="n [F1]")],
+                     key_observations=["a [F1]", "b [F1]", "c [F1]"],
                      sources=[Source(title="aa", url=SRCS[0].url)], missing_information=["size"])
     if schema is Critique:
         return Critique(approved=True)
     if schema is _Relevance:
         return _Relevance(relevant_ids=[1, 2, 3])
     if schema is _Claims:
-        n = user.count("\n") and len([l for l in user.split("Claims:")[1].splitlines() if l.strip()])
         # claims containing "340%" (the tampered one) are unsupported
         claims = [l.split(". ", 1)[1] for l in user.split("Claims:")[1].splitlines() if ". " in l]
         return _Claims(claims=[_Claim(claim=c, supported="340%" not in c) for c in claims])
@@ -77,7 +80,6 @@ def test_irrelevant_documents_are_filtered_out(monkeypatch):
 
 
 def test_graph_revise_branch_and_ragas_is_optional(monkeypatch):
-    from market_research.evaluation import verdict
     setup(monkeypatch)
     calls = []
     monkeypatch.setattr("market_research.evaluation.ragas_eval.ragas_metrics",
@@ -89,7 +91,6 @@ def test_graph_revise_branch_and_ragas_is_optional(monkeypatch):
 
 
 def test_ragas_failure_is_non_blocking(monkeypatch):
-    from market_research.evaluation import ragas_eval
     setup(monkeypatch)
     monkeypatch.setattr("ragas.evaluate", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
     monkeypatch.setattr("market_research.llm.chat_model", lambda *a, **k: object())

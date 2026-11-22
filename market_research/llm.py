@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from typing import Optional, Type, TypeVar
+from typing import Optional, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
@@ -30,6 +30,30 @@ class LLMError(Exception):
     """Raised for problems the user can fix (missing key, bad output, rate limit)."""
 
 
+def explain_error(e: Exception) -> str:
+    """Turn any exception from an LLM or search call into one short message a student can act on.
+
+    Classifies by exception type and HTTP status first. Only the start of the message is read as a fallback,
+    because a failed call can echo the model's own output, which may contain words like "network".
+    """
+    name = type(e).__name__.lower()
+    code = getattr(e, "status_code", None)
+    head = str(e)[:80].lower()
+    if code == 429 or "ratelimit" in name or "rate limit" in head or "429" in head:
+        return "The LLM rate limit was hit. Wait a minute and try again, or pick a smaller model in .env."
+    if code in (401, 403) or "authentication" in name or "permissiondenied" in name or "invalid api key" in head:
+        return "The LLM rejected the API key. Check GROQ_API_KEY in your .env file."
+    if (isinstance(e, (ConnectionError, TimeoutError)) or "connection" in name or "timeout" in name
+            or any(w in head for w in ("connection", "timed out", "network", "unreachable", "resolve"))):
+        return "Could not reach the LLM service (network problem or timeout). Check your internet connection and retry."
+    return "The LLM call failed. Please retry; if it keeps failing, check the Agent trace tab and the README troubleshooting table."
+
+
+def _is_bad_json(e: Exception) -> bool:
+    """Groq answers HTTP 400 json_validate_failed when the model's JSON does not fit the schema."""
+    return getattr(e, "status_code", None) == 400 and "json" in str(e)[:300].lower()
+
+
 def chat_model(model: Optional[str] = None, temperature: float = 0.3, max_tokens: int = config.LLM_MAX_TOKENS):
     """LangChain ChatGroq client (also reused by the RAGAS evaluator)."""
     from langchain_groq import ChatGroq
@@ -42,7 +66,7 @@ def chat_model(model: Optional[str] = None, temperature: float = 0.3, max_tokens
 
 
 @track("llm_call", "llm")
-def ask_json(schema: Type[T], system: str, user: str, model: Optional[str] = None,
+def ask_json(schema: type[T], system: str, user: str, model: Optional[str] = None,
              temperature: float = 0.3) -> T:
     """LangChain chain (prompt | ChatGroq structured output) validated against a Pydantic schema (one retry)."""
     from langchain_core.callbacks import UsageMetadataCallbackHandler
@@ -58,7 +82,7 @@ def ask_json(schema: Type[T], system: str, user: str, model: Optional[str] = Non
     chain = prompt | chat_model(model, temperature).with_structured_output(schema, method="json_mode")
     text = user
     last_err: Exception | None = None
-    for _ in range(2):
+    for attempt in range(2):
         handler = UsageMetadataCallbackHandler()
         try:
             try:
@@ -74,7 +98,9 @@ def ask_json(schema: Type[T], system: str, user: str, model: Optional[str] = Non
             last_err = e
             text = user + f"\n\nYour previous answer was invalid ({e}). Return ONLY valid JSON matching the schema."
         except Exception as e:  # network, auth, rate limit (after retries), bad model name...
-            if "429" in str(e) or "rate" in str(e).lower():
-                raise LLMError(f"Groq rate limit hit repeatedly, try again in a minute: {e}") from e
-            raise LLMError(f"Groq API call failed: {e}") from e
+            if _is_bad_json(e) and attempt == 0:  # same one retry as for invalid JSON
+                last_err = e
+                text = user + "\n\nYour previous answer was not valid JSON for the schema. Return ONLY valid JSON."
+                continue
+            raise LLMError(explain_error(e)) from e
     raise LLMError(f"Model did not return valid JSON: {last_err}")

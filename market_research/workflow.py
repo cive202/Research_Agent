@@ -9,17 +9,24 @@ writing quality is subjective and an earlier version is sometimes the better one
 from __future__ import annotations
 
 import time
-from typing import Callable, Optional, TypedDict
+from collections.abc import Callable
+from typing import Optional, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
 from . import config
 from .agents import analyst, critic, researcher
-from .llm import usage_snapshot
+from .grounding import check_grounding
 from .guideline import Guideline
-from .models import Research, StepMetric, WorkflowState
+from .llm import LLMError, explain_error, usage_snapshot
+from .models import Research, StepMetric, TraceStep, WorkflowState
+from .search import SearchUnavailable
 
 StepCallback = Callable[[str], None]
+
+# Which role each graph node belongs to, for the per-run agent trace.
+ROLE_OF = {"researcher": "Researcher", "analyst": "Analyst", "critic": "Critic", "approve": "Orchestrator",
+           "revise": "Analyst", "stop": "Orchestrator", "evaluate": "Evaluator", "finish": "Orchestrator"}
 
 
 class GraphState(TypedDict):
@@ -28,6 +35,23 @@ class GraphState(TypedDict):
     evaluate_rag: bool
     ragas: bool
     force_revision: bool
+
+
+def _detail(node: str, s: WorkflowState) -> str:
+    """One-line summary of what a node handed to the next role, shown in the agent trace."""
+    r = s.research
+    if node == "researcher" and r:
+        return f"{len(r.findings)} findings, {len(r.sources)} sources, provider={r.provider or r.mode}"
+    if node == "analyst" and s.drafts:
+        return f"draft v0, {len(s.drafts[0].key_observations)} observations"
+    if node == "critic" and s.critique:
+        c = s.critique
+        return "approved" if c.approved else f"changes requested ({len(c.issues)} issues)"
+    if node == "revise":
+        return f"revision v{len(s.drafts) - 1}"
+    if node == "stop":
+        return "revision budget used"
+    return ""
 
 
 def build_graph(on_step: Optional[StepCallback] = None):
@@ -107,11 +131,19 @@ def build_graph(on_step: Optional[StepCallback] = None):
         return {"state": s}
 
     def finish_node(g: GraphState) -> dict:
-        step(g["state"], "Orchestrator: workflow complete.")
-        return {"state": g["state"]}
+        s = g["state"]
+        if s.final:
+            s.grounding = check_grounding(s.final, s.research)
+            step(s, f"Orchestrator: grounding check found {len(s.grounding)} flag(s).")
+        step(s, "Orchestrator: workflow complete.")
+        return {"state": s}
 
     def after_critic(g: GraphState) -> str:
-        return "approve" if g["state"].critique.approved else "revise"
+        s = g["state"]
+        if s.critique.approved:
+            return "approve"
+        # Hard limit in code: never start a revision beyond the budget, whatever the Critic says.
+        return "revise" if len(s.drafts) - 1 < s.max_iterations else "stop"
 
     def after_revise(g: GraphState) -> str:
         s = g["state"]
@@ -124,8 +156,16 @@ def build_graph(on_step: Optional[StepCallback] = None):
         """Record wall time and LLM usage of one node on the shared state."""
         def wrapper(g: GraphState) -> dict:
             t0, u0 = time.perf_counter(), usage_snapshot()
-            out = fn(g)
+            try:
+                out = fn(g)
+            except Exception as e:
+                g["state"].trace.append(TraceStep(role=ROLE_OF[name], status="error",
+                                                  seconds=round(time.perf_counter() - t0, 2),
+                                                  detail=f"{name}: {type(e).__name__}"))
+                raise
             u1 = usage_snapshot()
+            g["state"].trace.append(TraceStep(role=ROLE_OF[name], seconds=round(time.perf_counter() - t0, 2),
+                                              detail=_detail(name, g["state"])))
             g["state"].metrics.append(StepMetric(
                 step=name, seconds=round(time.perf_counter() - t0, 2), llm_calls=u1["calls"] - u0["calls"],
                 input_tokens=u1["input_tokens"] - u0["input_tokens"],
@@ -141,7 +181,7 @@ def build_graph(on_step: Optional[StepCallback] = None):
     graph.add_edge(START, "researcher")
     graph.add_edge("researcher", "analyst")
     graph.add_edge("analyst", "critic")
-    graph.add_conditional_edges("critic", after_critic, {"approve": "approve", "revise": "revise"})
+    graph.add_conditional_edges("critic", after_critic, {"approve": "approve", "revise": "revise", "stop": "stop"})
     graph.add_conditional_edges("approve", after_final, {"evaluate": "evaluate", "finish": "finish"})
     graph.add_conditional_edges("revise", after_revise, {"critic": "critic", "stop": "stop"})
     graph.add_conditional_edges("stop", after_final, {"evaluate": "evaluate", "finish": "finish"})
@@ -161,6 +201,7 @@ def orchestrator(
     guideline: Optional[Guideline] = None,
     iterations: int = config.REVIEW_ITERATIONS,
     research: Optional[Research] = None,
+    raise_errors: bool = True,
 ) -> WorkflowState:
     """Run the workflow on a short query, or on a guideline (its topic then replaces the query)."""
     query = (guideline.topic if guideline else query).strip()
@@ -170,12 +211,20 @@ def orchestrator(
         raise ValueError(f"Query is too long (max {config.MAX_QUERY_CHARS} characters).")
     iterations = max(1, min(int(iterations), config.MAX_REVIEW_ITERATIONS))
 
-    result = build_graph(on_step).invoke({
-        "state": WorkflowState(query=query, guideline=guideline, max_iterations=iterations,
-                               research=research), "use_sample": use_sample, "evaluate_rag": evaluate_rag,
-        "ragas": ragas and evaluate_rag, "force_revision": force_revision,
-    })
-    state = result["state"]
+    state = WorkflowState(query=query, guideline=guideline, max_iterations=iterations, research=research)
+    state.trace.append(TraceStep(role="Orchestrator", detail="query received, workflow started"))
+    try:
+        result = build_graph(on_step).invoke({
+            "state": state, "use_sample": use_sample or config.use_sample_env(), "evaluate_rag": evaluate_rag,
+            "ragas": ragas and evaluate_rag, "force_revision": force_revision,
+        })
+        state = result["state"]
+    except Exception as e:
+        # The nodes mutate `state` in place, so everything produced before the failure is kept.
+        state.error = str(e) if isinstance(e, (LLMError, SearchUnavailable)) else explain_error(e)
+        if raise_errors:
+            raise
+        return state
     if save_dir:
         from .artifacts import save_run
 

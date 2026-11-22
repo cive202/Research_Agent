@@ -6,8 +6,9 @@ state.json are recorded either way.
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import lru_cache
-from typing import Callable, TypeVar
+from typing import TypeVar
 
 from . import config
 
