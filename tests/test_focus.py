@@ -118,3 +118,66 @@ def test_gap_rounds_option_overrides_config(monkeypatch):
     monkeypatch.setattr(config, "MAX_GAP_ROUNDS", 0)  # config says off; the explicit option wins
     on = workflow.orchestrator("q", max_gap_rounds=1)
     assert len(on.research.gap_rounds) == 1
+
+
+def test_failed_revision_keeps_the_reviewed_draft(monkeypatch):
+    from market_research.llm import LLMError
+    setup(monkeypatch)
+
+    def ask(schema, system, user, model=None, temperature=0.3):
+        if schema is Brief and "Critic issues" in user:
+            raise LLMError("The request was too large for Groq's per-minute token limit")
+        return fake_ask_json(schema, system, user, model, temperature)
+
+    monkeypatch.setattr(analyst_mod, "ask_json", ask)
+    st = workflow.orchestrator("q", force_revision=True, evaluate_rag=True)
+    assert st.error is None and st.final is st.drafts[0] and not st.revised
+    assert "too large" in st.revision_error
+    assert any("revision failed" in line for line in st.log) and st.evaluation is not None
+
+
+def test_413_gets_a_clear_message_and_the_answer_budget_shrinks(monkeypatch):
+    from market_research import llm
+
+    class Err(Exception):
+        status_code = 413
+
+    assert "per-minute token limit" in llm.explain_error(Err("Request too large for model"))
+    monkeypatch.setenv("GROQ_TPM_LIMIT", "8000")
+    assert llm.output_budget(4000) == config.LLM_MAX_TOKENS           # small prompt: full budget
+    assert llm.output_budget(20000) == 8000 - int(20000 / 3.5) - 150  # big prompt: shrinks to fit
+    assert llm.output_budget(40000) == config.LLM_MIN_OUTPUT_TOKENS   # never below the floor
+    monkeypatch.setenv("GROQ_TPM_LIMIT", "0")
+    assert llm.output_budget(40000) == config.LLM_MAX_TOKENS          # 0 = no cap
+
+
+def test_analyst_and_critic_prompts_leave_out_snippets_and_source_lists(monkeypatch):
+    setup(monkeypatch)
+    prompts = {}
+
+    def ask(schema, system, user, model=None, temperature=0.3):
+        prompts.setdefault(schema.__name__ + ("_rev" if "Critic issues" in user else ""), user)
+        return fake_ask_json(schema, system, user, model, temperature)
+
+    for mod in (analyst_mod, critic_mod):
+        monkeypatch.setattr(mod, "ask_json", ask)
+    workflow.orchestrator("q", force_revision=True)
+    snippet = "aa" * 60  # the source snippets used by the mocked search
+    for name in ("Brief", "Critique", "Brief_rev"):
+        assert snippet not in prompts[name], name
+        assert '"queries"' not in prompts[name] and '"gap_rounds"' not in prompts[name]
+    assert "EXAMPLE BRIEF" not in prompts["Brief_rev"]  # a revision needs no few-shot example
+
+
+def test_repeated_claims_are_merged_before_the_cap(monkeypatch):
+    from market_research.agents.researcher import number_findings
+    monkeypatch.setattr(config, "MAX_FINDINGS", 3)
+    same = "Pathao's valuation ranges from $100 million to $1 billion."
+    drafts = [Finding(claim=same, source_url="https://a.com/x"),
+              Finding(claim="  pathao's VALUATION ranges from $100 million to $1 billion ", source_url="https://b.com/y"),
+              Finding(claim="Pathao Courier delivers 100,000 parcels a day.", source_url="https://c.com/z"),
+              Finding(claim=same, source_url="https://d.com/w"),
+              Finding(claim="Pathao has 100,000 drivers.", source_url="https://e.com/v")]
+    out = number_findings(drafts, [])
+    assert [f.id for f in out] == ["F1", "F2", "F3"]  # no gaps in the IDs
+    assert [f.source_url for f in out] == ["https://a.com/x", "https://c.com/z", "https://e.com/v"]

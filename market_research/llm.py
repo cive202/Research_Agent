@@ -39,6 +39,9 @@ def explain_error(e: Exception) -> str:
     name = type(e).__name__.lower()
     code = getattr(e, "status_code", None)
     head = str(e)[:80].lower()
+    if code == 413 or "request too large" in head:
+        return ("The request was too large for Groq's per-minute token limit (free tier: 8000 tokens). Retry in a "
+                "minute, lower the gap-filling rounds, or raise GROQ_TPM_LIMIT in .env if your plan allows more.")
     if code == 429 or "ratelimit" in name or "rate limit" in head or "429" in head:
         return "The LLM rate limit was hit. Wait a minute and try again, or pick a smaller model in .env."
     if code in (401, 403) or "authentication" in name or "permissiondenied" in name or "invalid api key" in head:
@@ -47,6 +50,24 @@ def explain_error(e: Exception) -> str:
             or any(w in head for w in ("connection", "timed out", "network", "unreachable", "resolve"))):
         return "Could not reach the LLM service (network problem or timeout). Check your internet connection and retry."
     return "The LLM call failed. Please retry; if it keeps failing, check the Agent trace tab and the README troubleshooting table."
+
+
+def estimate_tokens(text: str) -> int:
+    """Rough token count (about 3.5 characters per token for English and JSON). Errs on the high side."""
+    return int(len(text) / 3.5) + 1
+
+
+def output_budget(prompt_chars: int) -> int:
+    """max_tokens that keeps prompt + answer under Groq's per-request TPM cap, within sane bounds.
+
+    Groq rejects a request (HTTP 413) when prompt tokens plus max_tokens exceed the cap, even if the
+    answer would have been short, so the answer budget shrinks as the prompt grows.
+    """
+    cap = config.groq_tpm_limit()
+    if cap <= 0:
+        return config.LLM_MAX_TOKENS
+    room = cap - int(prompt_chars / 3.5) - 150  # 150 tokens of headroom for chat formatting
+    return max(config.LLM_MIN_OUTPUT_TOKENS, min(config.LLM_MAX_TOKENS, room))
 
 
 def _is_bad_json(e: Exception) -> bool:
@@ -79,7 +100,9 @@ def ask_json(schema: type[T], system: str, user: str, model: Optional[str] = Non
         + json.dumps(schema.model_json_schema())
     )
     prompt = ChatPromptTemplate.from_messages([("system", "{system}"), ("human", "{user}")])
-    chain = prompt | chat_model(model, temperature).with_structured_output(schema, method="json_mode")
+    budget = output_budget(len(system_full) + len(user) + 400)  # +400: room for the retry note
+    chain = prompt | chat_model(model, temperature, max_tokens=budget).with_structured_output(
+        schema, method="json_mode")
     text = user
     last_err: Exception | None = None
     for attempt in range(2):

@@ -122,6 +122,8 @@ def brief_to_markdown(state: WorkflowState, brief: Brief | None = None) -> str:
         rounds = len(state.critiques) or 1
         if state.critique.approved:
             verdict = f"approved after {rounds} review round(s)"
+        elif state.revision_error:
+            verdict = f"changes requested, but the revision failed ({state.revision_error}); this is the reviewed draft"
         else:
             verdict = f"changes requested in all {rounds} round(s); last edits applied without a further review"
         lines += ["---", f"*Critic verdict: {verdict}. Versions: {max(len(state.drafts), 1)}.*"]

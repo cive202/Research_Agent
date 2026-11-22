@@ -68,6 +68,7 @@ VAGUE_GENERALIZATION = r"\b(most|many|numerous|countless)\s+(companies|people|pl
 # --- LLM
 LLM_TIMEOUT = 60.0
 LLM_MAX_TOKENS = 2500
+LLM_MIN_OUTPUT_TOKENS = 1200  # never shrink the answer budget below this to fit the per-minute cap
 LLM_ATTEMPTS = 3
 
 # --- evaluation thresholds
@@ -99,6 +100,14 @@ def use_sample_env() -> bool:
 def intake_enabled() -> bool:
     """INTAKE_CHECK=0 turns off the Orchestrator's check that the query is a company or industry."""
     return os.getenv("INTAKE_CHECK", "1").strip().lower() not in ("0", "false", "no", "off")
+
+
+def groq_tpm_limit() -> int:
+    """Groq's tokens-per-minute cap for one request (prompt + max_tokens). Free tier: 8000. 0 = no cap."""
+    try:
+        return int(os.getenv("GROQ_TPM_LIMIT", "8000"))
+    except ValueError:
+        return 8000
 
 
 def model_name() -> str:

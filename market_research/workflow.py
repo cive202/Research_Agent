@@ -50,7 +50,7 @@ def _detail(node: str, s: WorkflowState) -> str:
         c = s.critique
         return "approved" if c.approved else f"changes requested ({len(c.issues)} issues)"
     if node == "revise":
-        return f"revision v{len(s.drafts) - 1}"
+        return "revision failed, v0 kept" if s.revision_error else f"revision v{len(s.drafts) - 1}"
     if node == "stop":
         return "revision budget used"
     return ""
@@ -115,7 +115,14 @@ def build_graph(on_step: Optional[StepCallback] = None):
         n = len(s.drafts)
         step(s, f"Analyst: revising, applying {len(s.critique.issues)} issues -> v{n} "
                 f"(round {n} of max {s.max_iterations})...")
-        new = analyst(s, revise=True, draft=s.drafts[-1], critique=s.critique)
+        try:
+            new = analyst(s, revise=True, draft=s.drafts[-1], critique=s.critique)
+        except LLMError as e:
+            # The revision is an improvement, not a requirement: keep the reviewed draft rather than lose the run.
+            s.final = s.drafts[-1]
+            s.revision_error = str(e)
+            step(s, f"Analyst: revision failed ({e}); keeping v{len(s.drafts) - 1} as the final brief.")
+            return {"state": s}
         s.drafts.append(new)
         s.final = new
         s.revised = True
@@ -123,7 +130,10 @@ def build_graph(on_step: Optional[StepCallback] = None):
 
     def stop_node(g: GraphState) -> dict:
         s = g["state"]
-        step(s, f"Orchestrator: review budget used ({s.max_iterations} rounds); v{len(s.drafts) - 1} is final.")
+        if s.revision_error:
+            step(s, f"Orchestrator: revision did not run; reviewed draft v{len(s.drafts) - 1} is final.")
+        else:
+            step(s, f"Orchestrator: review budget used ({s.max_iterations} rounds); v{len(s.drafts) - 1} is final.")
         return {"state": s}
 
     def evaluate_node(g: GraphState) -> dict:
@@ -152,6 +162,8 @@ def build_graph(on_step: Optional[StepCallback] = None):
 
     def after_revise(g: GraphState) -> str:
         s = g["state"]
+        if s.revision_error:
+            return "stop"
         return "critic" if len(s.drafts) - 1 < s.max_iterations else "stop"
 
     def after_final(g: GraphState) -> str:

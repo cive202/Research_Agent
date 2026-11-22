@@ -11,6 +11,7 @@ from ..llm import ask_json
 from ..models import Brief, Critique, Issue, WorkflowState
 from ..profiles import writing_context
 from ..tracing import track
+from .analyst import draft_json, findings_json
 
 SYSTEM = (
     "You are the Critic. You review a draft brief you did not write, so be independent. Check it against "
@@ -38,7 +39,7 @@ SYSTEM = (
 @track("critic")
 def critic(state: WorkflowState, draft: Brief | None = None) -> Critique:
     draft = draft or (state.drafts[-1] if state.drafts else state.draft)
-    findings = state.research.model_dump_json(indent=2, exclude={"sources": {"__all__": {"snippet"}}})
+    findings = findings_json(state.research)
     guideline = state.guideline.to_prompt() if state.guideline else f"(no guideline; topic: {state.query})"
     profiles = writing_context(include_examples=False)
     flags = check_grounding(draft, state.research)
@@ -48,7 +49,7 @@ def critic(state: WorkflowState, draft: Brief | None = None) -> Critique:
         f"Query: {state.query}\nFocus: {focus}\n\nGuideline:\n{guideline}"
         + (f"\n\nWriting profiles:\n{profiles}" if profiles else "")
         + f"\n\nFindings:\n{findings}\n\nGrounding flags:\n{flag_text}"
-        + f"\n\nDraft brief:\n{draft.model_dump_json(indent=2)}"
+        + f"\n\nDraft brief:\n{draft_json(draft)}"
     )
     critique = ask_json(Critique, SYSTEM, user)
     # The grounding flags are facts, so an approval that ignores them is overruled in code. The competitor

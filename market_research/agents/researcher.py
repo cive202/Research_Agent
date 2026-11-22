@@ -1,6 +1,8 @@
 """Researcher: retrieves documents and extracts sourced findings."""
 from __future__ import annotations
 
+import re
+
 from .. import config
 from ..focus import ensure_focus, mentions_focus, rank_by_focus
 from ..llm import LLMError, ask_json
@@ -17,7 +19,8 @@ SYSTEM = (
     "Each finding must name the source_title and source_url of the document it came from. "
     "Do not add facts that are not in the documents. If something could not be found "
     "(market size, growth, competitors, dates), list it in data_gaps instead of guessing. "
-    "Only list a gap if the documents truly do not answer it. Documents marked BACKGROUND do not mention "
+    "Only list a gap if the documents truly do not answer it. List each fact once: if several documents say "
+    "the same thing, write one finding and cite the most authoritative of them. Documents marked BACKGROUND do not mention "
     "the focus: use them only for general context. " + config.UNTRUSTED_NOTE
 )
 
@@ -49,15 +52,34 @@ def _retrieve(query: str, extra_queries: list[str] | None = None) -> tuple[list,
     return rank_by_focus(kept, focus)[: config.MAX_SOURCES], queries, focus
 
 
-def number_findings(findings: list[FindingDraft], sources: list, focus: list[str] | None = None) -> list[Finding]:
-    """Cap at MAX_FINDINGS, then number F1, F2, ... in code and attach a short snippet of the source.
+def claim_key(claim: str) -> str:
+    """Findings with the same text share this key, whatever their case, spacing or punctuation."""
+    return re.sub(r"[^a-z0-9]+", "", claim.lower())[:200]
 
+
+def drop_repeated_claims(findings: list[FindingDraft]) -> list[FindingDraft]:
+    """Keep the first finding of each claim. The model sometimes copies one fact once per source."""
+    seen: set[str] = set()
+    out: list[FindingDraft] = []
+    for f in findings:
+        key = claim_key(f.claim)
+        if key and key in seen:
+            continue
+        seen.add(key)
+        out.append(f)
+    return out
+
+
+def number_findings(findings: list[FindingDraft], sources: list, focus: list[str] | None = None) -> list[Finding]:
+    """Drop repeated claims, cap at MAX_FINDINGS, then number F1, F2, ... in code and attach a source snippet.
+
+    De-duplicating before the cap means the cap counts distinct facts, and the IDs have no gaps.
     A finding is BACKGROUND (on_focus=False) when its source is background and the claim itself does not
     mention the focus either.
     """
     by_url = {normalize_url(s.url): s for s in sources if s.url}
     findings = [f if isinstance(f, Finding) else Finding(**f.model_dump())
-                for f in findings[: config.MAX_FINDINGS]]
+                for f in drop_repeated_claims(findings)[: config.MAX_FINDINGS]]
     for n, f in enumerate(findings, 1):
         f.id = f"F{n}"
         src = by_url.get(normalize_url(f.source_url))

@@ -110,6 +110,9 @@ def run_workflow(query: str, use_sample: bool, run_eval: bool, ragas: bool = Fal
 
 def render_brief(state: WorkflowState) -> None:
     brief = state.final
+    if state.revision_error:
+        st.warning(f"The Critic asked for changes, but the revision failed ({state.revision_error}) "
+                   "This is the reviewed first draft; the Critic's issues are in the Agent trace tab.")
     st.subheader(f"Brief: {state.query}")
     st.markdown("**Summary**")
     r = state.research

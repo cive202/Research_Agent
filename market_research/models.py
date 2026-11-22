@@ -180,6 +180,7 @@ class WorkflowState(BaseModel):
     max_iterations: int = 1
     evaluation: Optional[EvaluationReport] = None
     metrics: list[StepMetric] = Field(default_factory=list)
+    revision_error: str = Field(default="", description="Why the revision failed, if it did (the draft was kept).")
     run_dir: Optional[str] = Field(default=None, description="Where run artifacts were saved, if enabled.")
     log: list[str] = Field(default_factory=list)
     trace: list[TraceStep] = Field(default_factory=list, description="Per-run agent trace.")

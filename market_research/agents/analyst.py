@@ -4,7 +4,6 @@ Context = guideline (what to write) + profiles and few-shot examples (how to wri
 """
 from __future__ import annotations
 
-import json
 import re
 
 from .. import config
@@ -39,16 +38,31 @@ SYSTEM = (
 )
 
 
-def _context(state: WorkflowState) -> str:
-    findings = state.research.model_dump(
-        exclude={"sources": {"__all__": {"snippet"}}, "findings": {"__all__": {"snippet"}}}) if state.research else {}
+def findings_json(research: Research | None) -> str:
+    """The evidence the Analyst and Critic need, compact: mode, focus, findings and gaps.
+
+    Retrieved sources, snippets and queries are left out: sources are rebuilt in code from the cited findings,
+    and every extra token counts against Groq's per-request limit.
+    """
+    if research is None:
+        return "{}"
+    return research.model_dump_json(include={"mode", "focus", "findings", "data_gaps"},
+                                    exclude={"findings": {"__all__": {"snippet"}}})
+
+
+def draft_json(draft: Brief) -> str:
+    """A draft without source snippets (the model never needs them)."""
+    return draft.model_dump_json(exclude={"sources": {"__all__": {"snippet"}}, "competitors_dropped": True})
+
+
+def _context(state: WorkflowState, examples: bool = True) -> str:
     guideline = state.guideline.to_prompt() if state.guideline else f"(no guideline; topic: {state.query})"
-    profiles = writing_context()
+    profiles = writing_context(include_examples=examples)
     focus = ", ".join(state.research.focus) if state.research and state.research.focus else "(none named)"
     return (
         f"Query: {state.query}\nFocus: {focus}\n\nGuideline:\n{guideline}"
         + (f"\n\nWriting profiles and examples:\n{profiles}" if profiles else "")
-        + f"\n\nFindings (JSON):\n{json.dumps(findings, indent=2)}"
+        + f"\n\nFindings (JSON):\n{findings_json(state.research)}"
     )
 
 
@@ -89,7 +103,8 @@ def finalize_brief(brief: Brief, research: Research | None) -> Brief:
 def analyst(state: WorkflowState, revise: bool = False, draft: Brief | None = None,
             critique: Critique | None = None) -> Brief:
     """Write a first draft, or (revise=True) apply `critique` to `draft` (defaults: the latest of each)."""
-    user = _context(state)
+    # A revision edits an existing draft, so it does not need the few-shot example (saves tokens).
+    user = _context(state, examples=not revise)
     if revise:
         draft = draft or (state.drafts[-1] if state.drafts else state.draft)
         critique = critique or state.critique
@@ -99,7 +114,7 @@ def analyst(state: WorkflowState, revise: bool = False, draft: Brief | None = No
             for n, i in enumerate(sorted(critique.issues, key=lambda i: i.priority), 1)
         )
         user += (
-            f"\n\nYour previous draft:\n{draft.model_dump_json(indent=2)}"
+            f"\n\nYour previous draft:\n{draft_json(draft)}"
             f"\n\nCritic issues, most important first:\n{issues or '(none listed)'}"
             f"\n\nCritic summary: {critique.revision_instructions}"
             "\n\nRevise the draft to fix these issues. Fix the earlier ones first; if two issues conflict, "
