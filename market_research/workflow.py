@@ -1,4 +1,11 @@
-"""Orchestrator: a LangGraph state machine Researcher -> Analyst -> Critic (-> Analyst once) -> Evaluator."""
+"""Orchestrator: a LangGraph state machine.
+
+Researcher -> Analyst (v0) -> [Critic -> Analyst edits]* -> Evaluator
+
+The Critic/Analyst pair is an evaluator-optimizer loop with a fixed budget of `iterations` rounds: it
+stops early when the Critic approves, otherwise after the last edit. Every version is kept, because
+writing quality is subjective and an earlier version is sometimes the better one.
+"""
 from __future__ import annotations
 
 import time
@@ -9,7 +16,8 @@ from langgraph.graph import END, START, StateGraph
 from . import config
 from .agents import analyst, critic, researcher
 from .llm import usage_snapshot
-from .models import StepMetric, WorkflowState
+from .guideline import Guideline
+from .models import Research, StepMetric, WorkflowState
 
 StepCallback = Callable[[str], None]
 
@@ -33,6 +41,9 @@ def build_graph(on_step: Optional[StepCallback] = None):
     def research_node(g: GraphState) -> dict:
         s = g["state"]
         step(s, f"Orchestrator: received query '{s.query}', starting workflow.")
+        if s.research is not None:  # research done elsewhere (for example by the MCP research tools)
+            step(s, f"Researcher: using existing research ({len(s.research.findings)} findings).")
+            return {"state": s}
         step(s, "Researcher: gathering information" + (" (sample data)..." if g["use_sample"] else " (web search)..."))
         s.research = researcher(s, g["use_sample"])
         for n, qs in enumerate(s.research.gap_rounds, 1):
@@ -43,33 +54,47 @@ def build_graph(on_step: Optional[StepCallback] = None):
 
     def analyst_node(g: GraphState) -> dict:
         s = g["state"]
-        step(s, "Analyst: writing draft brief...")
+        step(s, "Analyst: writing draft brief (v0)...")
         s.draft = analyst(s)
+        s.drafts = [s.draft]
         return {"state": s}
 
     def critic_node(g: GraphState) -> dict:
         s = g["state"]
-        step(s, "Critic: reviewing draft...")
-        s.critique = critic(s)
-        if not s.critique.approved:
-            step(s, f"Critic: {len(s.critique.issues)} issues " + ", ".join(
-                sorted({i.category for i in s.critique.issues})) if s.critique.issues else "Critic: revision requested.")
-        if g["force_revision"] and s.critique.approved:  # test hook for the one-revision path
-            s.critique.approved = False
-            s.critique.revision_instructions = "Tighten wording (forced revision for testing)."
+        v = len(s.drafts) - 1
+        step(s, f"Critic: reviewing draft v{v} in a fresh context...")
+        c = critic(s, s.drafts[-1])
+        if g["force_revision"] and c.approved and v == 0:  # test hook for the revision path
+            c.approved = False
+            c.revision_instructions = "Tighten wording (forced revision for testing)."
+        s.critique = c
+        s.critiques.append(c)
+        if not c.approved:
+            step(s, f"Critic: {len(c.issues)} issues (" + ", ".join(
+                sorted({f"{i.rule}/{i.category}" for i in c.issues})) + ")" if c.issues
+                else "Critic: revision requested.")
         return {"state": s}
 
     def approve_node(g: GraphState) -> dict:
         s = g["state"]
-        step(s, "Critic: approved, no revision needed.")
-        s.final = s.draft
+        step(s, f"Critic: approved draft v{len(s.drafts) - 1}.")
+        s.final = s.drafts[-1]
         return {"state": s}
 
     def revise_node(g: GraphState) -> dict:
         s = g["state"]
-        step(s, "Critic: revision requested. Analyst: revising (max one revision)...")
-        s.final = analyst(s, revise=True)
+        n = len(s.drafts)
+        step(s, f"Analyst: revising, applying {len(s.critique.issues)} issues -> v{n} "
+                f"(round {n} of max {s.max_iterations})...")
+        new = analyst(s, revise=True, draft=s.drafts[-1], critique=s.critique)
+        s.drafts.append(new)
+        s.final = new
         s.revised = True
+        return {"state": s}
+
+    def stop_node(g: GraphState) -> dict:
+        s = g["state"]
+        step(s, f"Orchestrator: review budget used ({s.max_iterations} rounds); v{len(s.drafts) - 1} is final.")
         return {"state": s}
 
     def evaluate_node(g: GraphState) -> dict:
@@ -87,6 +112,10 @@ def build_graph(on_step: Optional[StepCallback] = None):
 
     def after_critic(g: GraphState) -> str:
         return "approve" if g["state"].critique.approved else "revise"
+
+    def after_revise(g: GraphState) -> str:
+        s = g["state"]
+        return "critic" if len(s.drafts) - 1 < s.max_iterations else "stop"
 
     def after_final(g: GraphState) -> str:
         return "evaluate" if g["evaluate_rag"] else "finish"
@@ -106,7 +135,7 @@ def build_graph(on_step: Optional[StepCallback] = None):
 
     graph = StateGraph(GraphState)
     for name, fn in [("researcher", research_node), ("analyst", analyst_node), ("critic", critic_node),
-                     ("approve", approve_node), ("revise", revise_node),
+                     ("approve", approve_node), ("revise", revise_node), ("stop", stop_node),
                      ("evaluate", evaluate_node), ("finish", finish_node)]:
         graph.add_node(name, timed(name, fn))
     graph.add_edge(START, "researcher")
@@ -114,29 +143,36 @@ def build_graph(on_step: Optional[StepCallback] = None):
     graph.add_edge("analyst", "critic")
     graph.add_conditional_edges("critic", after_critic, {"approve": "approve", "revise": "revise"})
     graph.add_conditional_edges("approve", after_final, {"evaluate": "evaluate", "finish": "finish"})
-    graph.add_conditional_edges("revise", after_final, {"evaluate": "evaluate", "finish": "finish"})
+    graph.add_conditional_edges("revise", after_revise, {"critic": "critic", "stop": "stop"})
+    graph.add_conditional_edges("stop", after_final, {"evaluate": "evaluate", "finish": "finish"})
     graph.add_edge("evaluate", "finish")
     graph.add_edge("finish", END)
     return graph.compile()
 
 
 def orchestrator(
-    query: str,
+    query: str = "",
     use_sample: bool = False,
     on_step: Optional[StepCallback] = None,
     evaluate_rag: bool = False,
     force_revision: bool = False,
     ragas: bool = False,
     save_dir: Optional[str] = None,
+    guideline: Optional[Guideline] = None,
+    iterations: int = config.REVIEW_ITERATIONS,
+    research: Optional[Research] = None,
 ) -> WorkflowState:
-    query = query.strip()
+    """Run the workflow on a short query, or on a guideline (its topic then replaces the query)."""
+    query = (guideline.topic if guideline else query).strip()
     if not query:
         raise ValueError("Please enter a company or industry.")
     if len(query) > config.MAX_QUERY_CHARS:
         raise ValueError(f"Query is too long (max {config.MAX_QUERY_CHARS} characters).")
+    iterations = max(1, min(int(iterations), config.MAX_REVIEW_ITERATIONS))
 
     result = build_graph(on_step).invoke({
-        "state": WorkflowState(query=query), "use_sample": use_sample, "evaluate_rag": evaluate_rag,
+        "state": WorkflowState(query=query, guideline=guideline, max_iterations=iterations,
+                               research=research), "use_sample": use_sample, "evaluate_rag": evaluate_rag,
         "ragas": ragas and evaluate_rag, "force_revision": force_revision,
     })
     state = result["state"]

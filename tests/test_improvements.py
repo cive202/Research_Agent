@@ -81,7 +81,7 @@ def test_issues_are_prioritised_and_reach_the_analyst(monkeypatch):
     st = workflow.orchestrator("q")
     assert [i.category for i in st.critique.issues] == ["competitor_limit", "unsupported_claim", "style"]
     p = seen["prompt"]
-    assert p.index("competitor_limit") < p.index("unsupported_claim") < p.index("[style]")
+    assert p.index("competitor_limit") < p.index("unsupported_claim") < p.index("/style]")
     assert st.revised and st.draft is not st.final  # first draft kept next to the revision
 
 
@@ -103,7 +103,7 @@ def test_step_metrics_and_run_artifacts(monkeypatch, tmp_path):
     from pathlib import Path
     run = Path(st.run_dir)
     assert run.parent == tmp_path and "nepal-food-delivery" in run.name
-    assert {p.name for p in run.iterdir()} == {"research.md", "draft_v0.md", "final.md", "state.json"}
+    assert {p.name for p in run.iterdir()} == {"research.md", "draft_v0.md", "reviews.md", "final.md", "state.json"}
     assert json.loads((run / "state.json").read_text())["query"] == "Nepal food delivery!"
     assert "## Findings" in (run / "research.md").read_text()
 

@@ -31,6 +31,19 @@ MAX_TOTAL_SOURCES = 12      # context budget: never feed more documents than thi
 # --- run artifacts
 RUNS_DIR = "runs"
 
+# --- writing: profiles and few-shot examples (markdown files), evaluator-optimizer loop
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROFILES_DIR = os.getenv("PROFILES_DIR", os.path.join(PROJECT_ROOT, "profiles"))
+MAX_FEW_SHOT = 1            # example briefs sent to the Analyst; raise only if quality drops without them
+REVIEW_ITERATIONS = 2       # review -> edit rounds; stops early when the Critic approves
+MAX_REVIEW_ITERATIONS = 5
+MAX_SEED_LINKS = 5          # guideline links read before searching
+
+# --- judge calibration (labelled dataset of real runs)
+EVAL_DATA_DIR = os.path.join(PROJECT_ROOT, "eval_data")
+SPLIT_SHARES = (("train", 0.4), ("dev", 0.3), ("test", 0.3))
+MAX_JUDGE_EXAMPLES = 4      # train examples shown to the calibrated judge
+
 # --- style: phrases the Analyst is told to avoid and the style_check metric flags
 BANNED_PHRASES = (
     "delve", "tapestry", "vibrant", "intricacies", "rapidly evolving", "ever-evolving", "fast-paced",
@@ -71,3 +84,11 @@ def model_name() -> str:
 
 def judge_model_name() -> str:
     return os.getenv("GROQ_JUDGE_MODEL") or model_name()
+
+
+OPIK_PROJECT = os.getenv("OPIK_PROJECT_NAME", "market-research")
+
+
+def opik_enabled() -> bool:
+    """Tracing is opt-in: set OPIK_API_KEY (Comet cloud) or OPIK_URL_OVERRIDE (self-hosted)."""
+    return bool(_key("OPIK_API_KEY") or os.getenv("OPIK_URL_OVERRIDE"))

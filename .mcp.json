@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "market-research": {
+      "command": "python",
+      "args": ["-m", "market_research.mcp_server"]
+    }
+  }
+}

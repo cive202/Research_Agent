@@ -51,9 +51,13 @@ def brief_to_markdown(state: WorkflowState, brief: Brief | None = None) -> str:
     if only_brief:
         return "\n".join(lines)
     if state.critique:
-        verdict = "approved" if state.critique.approved else "revision requested and applied"
-        lines += ["---", f"*Critic verdict: {verdict}.*"]
-        lines += [f"- [{i.category}] {i.section}: {i.comment}" for i in state.critique.issues]
+        rounds = len(state.critiques) or 1
+        if state.critique.approved:
+            verdict = f"approved after {rounds} review round(s)"
+        else:
+            verdict = f"changes requested in all {rounds} round(s); last edits applied without a further review"
+        lines += ["---", f"*Critic verdict: {verdict}. Versions: {max(len(state.drafts), 1)}.*"]
+        lines += [f"- [{i.rule}/{i.category}] {i.section}: {i.comment}" for i in state.critique.issues]
     if state.evaluation:
         lines += ["", evaluation_to_markdown(state.evaluation)]
     return "\n".join(lines)

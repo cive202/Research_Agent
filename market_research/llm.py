@@ -7,6 +7,7 @@ from typing import Optional, Type, TypeVar
 from pydantic import BaseModel, ValidationError
 
 from . import config
+from .tracing import track
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -40,6 +41,7 @@ def chat_model(model: Optional[str] = None, temperature: float = 0.3, max_tokens
                     max_tokens=max_tokens, timeout=config.LLM_TIMEOUT, max_retries=config.LLM_ATTEMPTS)
 
 
+@track("llm_call", "llm")
 def ask_json(schema: Type[T], system: str, user: str, model: Optional[str] = None,
              temperature: float = 0.3) -> T:
     """LangChain chain (prompt | ChatGroq structured output) validated against a Pydantic schema (one retry)."""

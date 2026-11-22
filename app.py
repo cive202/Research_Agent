@@ -1,13 +1,16 @@
 """Streamlit UI for the multi-agent market research app (entry point: `streamlit run app.py`)."""
 import streamlit as st
 
+from pathlib import Path
+
 from market_research import config, orchestrator
+from market_research.guideline import parse_guideline
 from market_research.llm import LLMError
 from market_research.models import EvaluationReport, WorkflowState
 from market_research.rendering import brief_to_markdown
 
 
-def render_sidebar() -> tuple[bool, bool, bool]:
+def render_sidebar() -> tuple[bool, bool, bool, int]:
     with st.sidebar:
         st.header("Options")
         use_sample = st.checkbox(
@@ -25,18 +28,30 @@ def render_sidebar() -> tuple[bool, bool, bool]:
             disabled=not run_eval,
             help="Adds RAGAS faithfulness and context precision (informational, many extra LLM calls).",
         )
+        iterations = st.slider(
+            "Review rounds", 1, config.MAX_REVIEW_ITERATIONS, config.REVIEW_ITERATIONS,
+            help="Maximum Critic review -> Analyst edit rounds. Stops early when the Critic approves.",
+        )
         st.markdown("Set `GROQ_API_KEY` (and optionally `TAVILY_API_KEY`) in your `.env` file. See the README.")
-    return use_sample, run_eval, run_ragas and run_eval
+    return use_sample, run_eval, run_ragas and run_eval, iterations
 
 
-def run_workflow(query: str, use_sample: bool, run_eval: bool, ragas: bool = False) -> None:
-    if not query.strip():
-        st.warning("Enter a company or industry first.")
+def run_workflow(query: str, use_sample: bool, run_eval: bool, ragas: bool = False,
+                 guideline_text: str = "", iterations: int = config.REVIEW_ITERATIONS) -> None:
+    guideline = None
+    if guideline_text.strip():
+        try:
+            guideline = parse_guideline(guideline_text)
+        except ValueError as e:
+            st.warning(str(e))
+            return
+    if not query.strip() and not guideline:
+        st.warning("Enter a company or industry first (or fill in a guideline).")
         return
     try:
         with st.status("Running agents...", expanded=True) as status:
             state = orchestrator(query, use_sample=use_sample, on_step=st.write, evaluate_rag=run_eval, ragas=ragas,
-                                 save_dir=config.RUNS_DIR)
+                                 save_dir=config.RUNS_DIR, guideline=guideline, iterations=iterations)
             status.update(label="Done", state="complete")
         st.session_state["state"] = state
     except LLMError as e:
@@ -101,15 +116,18 @@ def render_evaluation(ev: EvaluationReport) -> None:
 
 def render_handoffs(state: WorkflowState) -> None:
     with st.expander("Agent handoffs (shared data)"):
-        verdict = "approved" if state.critique.approved else "revision requested"
-        st.markdown(f"**Critic verdict:** {verdict}")
-        if state.critique.issues:
-            st.markdown("Issues raised (most important first):")
-            for i in state.critique.issues:
-                st.markdown(f"- `{i.category}` in *{i.section}*: {i.comment}")
-        if state.revised and state.draft:
-            with st.expander("First draft (before revision)"):
-                st.markdown(brief_to_markdown(state, state.draft))
+        verdict = "approved" if state.critique.approved else "changes requested"
+        st.markdown(f"**Critic verdict (last round):** {verdict}. "
+                    f"{len(state.critiques)} review round(s), {len(state.drafts)} version(s).")
+        for n, c in enumerate(state.critiques):
+            st.markdown(f"Review of v{n}: " + ("approved" if c.approved else f"{len(c.issues)} issue(s)"))
+            for i in c.issues:
+                st.markdown(f"- `{i.rule}/{i.category}` in *{i.section}*: {i.comment}")
+        if len(state.drafts) > 1:
+            tabs = st.tabs([f"v{n}" for n in range(len(state.drafts))])
+            for tab, d in zip(tabs, state.drafts):
+                with tab:
+                    st.markdown(brief_to_markdown(state, d))
         st.json(state.model_dump(), expanded=False)
 
 
@@ -149,12 +167,18 @@ def render_result(state: WorkflowState) -> None:
 def main() -> None:
     st.set_page_config(page_title="Market Research Agents", page_icon="🔎", layout="centered")
     st.title("Market research brief")
-    st.caption("Four roles run in sequence: Orchestrator → Researcher → Analyst → Critic.")
+    st.caption("Orchestrator → Researcher → Analyst → (Critic ⇄ Analyst, up to N rounds) → Evaluator.")
 
-    use_sample, run_eval, run_ragas = render_sidebar()
+    use_sample, run_eval, run_ragas, iterations = render_sidebar()
     query = st.text_input("Company or industry", placeholder="Analyze the food delivery market in Nepal")
+    with st.expander("Guideline (optional, recommended)"):
+        st.caption("Angle, audience, key questions, seed links and constraints. The title line is the topic "
+                   "and replaces the query above.")
+        template = Path(config.PROJECT_ROOT, "guidelines", "nepal-food-delivery.md")
+        guideline_text = st.text_area("Guideline markdown", height=260,
+                                      placeholder=template.read_text(encoding="utf-8") if template.is_file() else "")
     if st.button("Start research", type="primary"):
-        run_workflow(query, use_sample, run_eval, run_ragas)
+        run_workflow(query, use_sample, run_eval, run_ragas, guideline_text, iterations)
 
     state = st.session_state.get("state")
     if state and state.final:

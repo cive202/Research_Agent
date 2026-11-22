@@ -5,7 +5,8 @@ from .. import config
 from ..llm import LLMError, ask_json
 from ..models import Research, ResearchResult, WorkflowState
 from ..retrieval import plan_gap_queries, plan_queries, select_relevant
-from ..search import SearchUnavailable, web_search
+from ..search import SearchUnavailable, read_urls, web_search
+from ..tracing import track
 from ..urls import normalize_url, snap_urls
 from .sample_data import SAMPLE_RESEARCH
 
@@ -19,9 +20,16 @@ SYSTEM = (
 )
 
 
-def _retrieve(query: str) -> tuple[list, list[str]]:
-    """Plan queries, search, drop irrelevant documents; re-search once if too few survive."""
+def _retrieve(query: str, extra_queries: list[str] | None = None) -> tuple[list, list[str]]:
+    """Plan queries, search, drop irrelevant documents; re-search once if too few survive.
+
+    `extra_queries` (the guideline's key questions) run first, ahead of the planned ones.
+    """
     queries = plan_queries(query)
+    if extra_queries:
+        seen = {q.lower() for q in extra_queries}
+        queries = list(extra_queries) + [q for q in queries if q.lower() not in seen]
+        queries = queries[: max(config.MAX_PLANNED_QUERIES, len(extra_queries))]
     found = web_search(query, queries or None)
     kept = select_relevant(query, found)
     if len(kept) < config.MIN_KEPT_SOURCES or len(kept) / len(found) < config.MIN_KEPT_SHARE:
@@ -70,15 +78,28 @@ def _fill_gaps(query: str, sources: list, result: ResearchResult, tried: list[st
     return sources, result, rounds
 
 
+def _with_seeds(seeds: list, sources: list) -> list:
+    """Guideline links come first: the user already trusts them."""
+    seen = {normalize_url(s.url) for s in seeds}
+    return (seeds + [s for s in sources if normalize_url(s.url) not in seen])[: config.MAX_TOTAL_SOURCES]
+
+
+@track("researcher")
 def researcher(state: WorkflowState, use_sample: bool) -> Research:
     if use_sample:
         return SAMPLE_RESEARCH
+    g = state.guideline
+    topic = g.topic if g else state.query
+    seeds = read_urls(g.seed_links[: config.MAX_SEED_LINKS]) if g and g.seed_links else []
     try:
-        sources, queries = _retrieve(state.query)
+        sources, queries = _retrieve(topic, g.key_questions if g else None)
     except SearchUnavailable as e:
-        res = SAMPLE_RESEARCH.model_copy(deep=True)
-        res.data_gaps.insert(0, f"Live web search unavailable ({e}); using sample data.")
-        return res
+        if not seeds:
+            res = SAMPLE_RESEARCH.model_copy(deep=True)
+            res.data_gaps.insert(0, f"Live web search unavailable ({e}); using sample data.")
+            return res
+        sources, queries = [], []
+    sources = _with_seeds(seeds, sources)
 
     result = _extract(state.query, sources)
     sources, result, rounds = _fill_gaps(state.query, sources, result, queries)

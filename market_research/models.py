@@ -5,6 +5,8 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
+from .guideline import Guideline
+
 
 class Source(BaseModel):
     title: str
@@ -60,7 +62,12 @@ class Brief(BaseModel):
 IssueCategory = Literal["competitor_limit", "unsupported_claim", "missing_gap", "style", "other"]
 BriefSection = Literal["summary", "competitors", "key_observations", "sources", "missing_information"]
 
-# Lower number = fix first. Hard requirements beat evidence problems, which beat style.
+# Which rule an issue breaks. Reviews clash, so the editor resolves them in this order:
+# the human guideline first, then the research (no hallucinations), then the writing profiles.
+IssueRule = Literal["guideline", "research", "structure", "terminology", "character"]
+RULE_PRIORITY: dict[str, int] = {"guideline": 1, "research": 2, "structure": 3, "terminology": 4, "character": 5}
+
+# Within a rule: hard requirements beat evidence problems, which beat style.
 ISSUE_PRIORITY: dict[str, int] = {
     "competitor_limit": 1, "unsupported_claim": 2, "missing_gap": 2, "other": 3, "style": 4,
 }
@@ -68,6 +75,12 @@ ISSUE_PRIORITY: dict[str, int] = {
 
 class Issue(BaseModel):
     """One concrete problem the Critic found, so the Analyst knows exactly what to change."""
+    rule: IssueRule = Field(
+        default="research",
+        description="Which rule is broken. guideline: the brief ignores the guideline's angle, audience, "
+        "key questions, must-include items or constraints. research: a claim the findings do not support, "
+        "or a gap the brief hides. structure / terminology / character: the brief breaks that writing profile.",
+    )
     section: BriefSection = Field(description="Part of the brief the problem is in.")
     category: IssueCategory = Field(
         description="competitor_limit: more than two competitors or an unsupported one. "
@@ -78,8 +91,8 @@ class Issue(BaseModel):
     comment: str = Field(description="What is wrong and what to do about it, in one or two sentences.")
 
     @property
-    def priority(self) -> int:
-        return ISSUE_PRIORITY.get(self.category, 3)
+    def priority(self) -> tuple[int, int]:
+        return RULE_PRIORITY.get(self.rule, 3), ISSUE_PRIORITY.get(self.category, 3)
 
 
 class Critique(BaseModel):
@@ -116,11 +129,15 @@ class StepMetric(BaseModel):
 class WorkflowState(BaseModel):
     """The single object handed from role to role."""
     query: str
+    guideline: Optional[Guideline] = Field(default=None, description="Human-written guideline, if one was given.")
     research: Optional[Research] = None
-    draft: Optional[Brief] = None
-    critique: Optional[Critique] = None
+    draft: Optional[Brief] = Field(default=None, description="First draft (v0).")
+    critique: Optional[Critique] = Field(default=None, description="Latest review.")
     final: Optional[Brief] = None
     revised: bool = False
+    drafts: list[Brief] = Field(default_factory=list, description="Every version, v0 first.")
+    critiques: list[Critique] = Field(default_factory=list, description="One review per round; critiques[i] reviews drafts[i].")
+    max_iterations: int = 1
     evaluation: Optional[EvaluationReport] = None
     metrics: list[StepMetric] = Field(default_factory=list)
     run_dir: Optional[str] = Field(default=None, description="Where run artifacts were saved, if enabled.")

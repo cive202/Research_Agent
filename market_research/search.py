@@ -43,3 +43,25 @@ def web_search(query: str, queries: list[str] | None = None) -> list[Source]:
     if not out:
         raise SearchUnavailable("Web search returned no usable results." if not errors else "Web search failed.")
     return out[:config.MAX_SOURCES * 2]
+
+
+def read_urls(urls: list[str]) -> list[Source]:
+    """Fetch pages the user listed in the guideline (Tavily Extract). Failures are skipped, not raised."""
+    key = config.tavily_api_key()
+    if not key or not urls:
+        return []
+    try:
+        from langchain_tavily import TavilyExtract
+
+        res = TavilyExtract(tavily_api_key=key, extract_depth="basic").invoke({"urls": urls})
+    except Exception:
+        return []
+    if not isinstance(res, dict):
+        return []
+    out: list[Source] = []
+    for r in res.get("results", []):
+        url, content = r.get("url") or "", (r.get("raw_content") or "").strip()
+        if url and len(content) >= config.MIN_SNIPPET_CHARS:
+            title = r.get("title") or url
+            out.append(Source(title=title, url=url, snippet=content[: config.SNIPPET_CHARS * 2]))
+    return out
